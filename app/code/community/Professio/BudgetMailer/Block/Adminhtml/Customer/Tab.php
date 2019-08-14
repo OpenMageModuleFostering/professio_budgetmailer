@@ -5,14 +5,14 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 
 /**
@@ -27,7 +27,7 @@ implements Mage_Adminhtml_Block_Widget_Tab_Interface
 {
     /**
      * Current contact 
-     * @var type Professio_BudgetMailer_Model_Contact
+     * @var null|stdClass
      */
     protected $_contact;
     
@@ -100,25 +100,6 @@ implements Mage_Adminhtml_Block_Widget_Tab_Interface
     }
     
     /**
-     * Before to HTML
-     * 
-     * @return void
-     */
-    protected function _beforeToHtml() 
-    {
-        parent::_beforeToHtml();
-        
-        Mage::register('current_contact', $this->getContact());
-        
-        $block = $this->getLayout()
-            ->createBlock(
-                'budgetmailer/adminhtml_contact_edit_tab_form', 
-                'budgetmailer_customer_tab_edit'
-            );
-        $this->append($block, 'budgetmailer_customer_tab_edit');
-    }
-    
-    /**
      * Get current contact
      * 
      * @return Professio_BudgetMailer_Model_Contact
@@ -126,8 +107,12 @@ implements Mage_Adminhtml_Block_Widget_Tab_Interface
     protected function getContact()
     {
         if (!isset($this->_contact)) {
-            $this->_contact = Mage::getModel('budgetmailer/contact');
-            $this->_contact->loadByCustomer($this->getCustomer());
+            $client = Mage::getSingleton('budgetmailer/client')
+                ->getStoreClient($this->getCustomer()->getStoreId());
+            
+            $this->_contact = $client->getContact(
+                $this->getCustomer()->getEmail()
+            );
         }
         
         return $this->_contact;
@@ -150,16 +135,12 @@ implements Mage_Adminhtml_Block_Widget_Tab_Interface
      */
     public function isSubscribed()
     {
-        return !$this->getContact()->getUnsubscribed();
-    }
-    
-    /**
-     * Get current contact tags
-     * 
-     * @return array
-     */
-    public function getTags()
-    {
-        return $this->getContact()->getTags();
+        $contact = $this->getContact();
+        
+        if ($contact) {
+            return !$contact->unsubscribed;
+        }
+        
+        return false;
     }
 }

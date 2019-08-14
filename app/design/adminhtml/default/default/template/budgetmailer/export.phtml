@@ -1,0 +1,38 @@
+<?php
+/**
+ * Professio_BudgetMailer extension
+ * 
+ * NOTICE OF LICENSE
+ * 
+ * This source file is subject to the MIT License
+ * that is bundled with this package in the file LICENSE.
+ * It is also available through the world-wide-web at this URL:
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
+ * 
+ * @category       Professio
+ * @package        Professio_BudgetMailer
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
+ */
+
+/**
+ * Export page buttons
+ * 
+ * @category   Professio
+ * @package    Professio_BudgetMailer
+ */
+?>
+<div class="content-header">
+    <h3 class="icon-head head-adminhtml-import"><?php echo $this->__('BudgetMailer Export') ?></h3>
+    <p class="form-buttons">
+        <button id="bm_export_customers" title="<?php echo $this->__('Export Customers') ?>" type="button" class="scalable save" onclick="window.location = '<?php print Mage::helper('adminhtml')->getUrl('adminhtml/budgetmailer/exportcustomers') ?>'; return false;">
+            <span><span><span><?php echo $this->__('Export Customers') ?></span></span></span>
+        </button>
+        <button id="bm_export_customers_unreg" title="<?php echo $this->__('Export unregistered Customers') ?>" type="button" class="scalable save" onclick="window.location = '<?php print Mage::helper('adminhtml')->getUrl('adminhtml/budgetmailer/exportunregistered') ?>'; return false;">
+            <span><span><span><?php echo $this->__('Export unregistered Customers') ?></span></span></span>
+        </button>
+        <button id="bm_export_subscribers" title="<?php echo $this->__('Export Newsletter Subscribers') ?>" type="button" class="scalable save" onclick="window.location = '<?php print Mage::helper('adminhtml')->getUrl('adminhtml/budgetmailer/exportsubscribers') ?>'; return false;">
+            <span><span><span><?php echo $this->__('Export Newsletter Subscribers') ?></span></span></span>
+        </button>
+    </p>
+</div>

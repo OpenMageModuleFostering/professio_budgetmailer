@@ -5,14 +5,14 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 
 /**
@@ -24,27 +24,6 @@
 class Professio_BudgetMailer_SubscriberController
 extends Mage_Core_Controller_Front_Action
 {
-    /**
-     * Current contact
-     * @var Professio_BudgetMailer_Model_Contact  
-     */
-    protected $_contact;
-    
-    /**
-     * Get current contact
-     * 
-     * @return Professio_BudgetMailer_Model_Contact
-     */
-    protected function getContact()
-    {
-        if (!isset($this->_contact)) {
-            $this->_contact = Mage::getModel('budgetmailer/contact');
-//            $this->contact->loadByEmail($this->getEmail());
-        }
-        
-        return $this->_contact;
-    }
-    
     /**
      * Get current customer
      * 
@@ -109,9 +88,8 @@ extends Mage_Core_Controller_Front_Action
     }
     
     /**
-     * INFO this doesn't allow the have single customer with multiple emails
-     * 
      * Handle single subscription
+     * INFO this doesn't allow to have single customer with multiple emails
      * 
      * @return null
      */
@@ -119,45 +97,38 @@ extends Mage_Core_Controller_Front_Action
     {
         $this->log('budgetmailer/subscriber::subscribe() start');
         
-        if ($this->getCustomer()->getId()) {
-            $this->log('budgetmailer/subscriber::subscribe() customer');
-            
-            $this->getContact()->loadByCustomer($this->getCustomer());
-            
-            if (!$this->getContact()->getId()) {
-                $this->log(
-                    'budgetmailer/subscriber::subscribe() customer no contact'
+        $client = Mage::getSingleton('budgetmailer/client')->getClient();
+        $email = $this->getEmail();
+        $subscribe = true;
+        
+        $contact = $client->getContact($email);
+        
+        if (!$contact) {
+            $contact = new stdClass();
+
+            if ($this->getCustomer() && $this->getCustomer()->getId()) {
+                Mage::helper('budgetmailer/mapper')->customerToContact(
+                    $this->getCustomer(), $contact
                 );
-                
-                $this->getContact()->setCustomerId(
-                    $this->getCustomer()->getId()
-                );
-                
-                $this->getContact()->setEmail($this->getEmail());
+            } else {
+                $contact->email = $email;
             }
             
-            $this->getMapper()->customerToModel(
-                $this->getCustomer(), $this->getContact()
-            );
+            $new = true;
         } else {
-            $this->log('budgetmailer/subscriber::subscribe() no customer');
-            
-            $this->getContact()->loadByEmail($this->getEmail());
-            
-            if (!$this->getContact()->getId()) {
-                $this->log(
-                    'budgetmailer/subscriber::subscribe() no customer no '
-                    . 'contact'
-                );
-                
-                $this->getContact()->setEmail($this->getEmail());
-            }
+            $new = false;
         }
 
-        $this->getContact()->setUnsubscribed(false);
-        $this->getContact()->setSubscribe(true);
+        $contact->subscribe = $subscribe;
+        $contact->unsubscribed = !$subscribe;
+
+        if ($new) {
+            $client->postContact($contact);
+        } else {
+            $client->putContact($contact->email, $contact);
+        }
         
-        $this->getContact()->save();
+        $this->log('budgetmailer/subscriber::subscribe() end');
     }
     
     /**
@@ -167,14 +138,15 @@ extends Mage_Core_Controller_Front_Action
      */
     public function subscribeAction()
     {
-        if ($this->getRequest()->isPost() 
-            && $this->getRequest()->getPost('email')) {
+        if ($this->getRequest()->isPost() && $this->getEmail()) {
             try {
                 $this->subscribe();
                 $this->getSession()->addSuccess(
                     $this->__('The subscription has been saved.')
                 );
             } catch(Exception $e) {
+                Mage::logException($e);
+                
                 $this->getSession()->addError(
                     $this->__(
                         'An error occurred while saving your subscription.'

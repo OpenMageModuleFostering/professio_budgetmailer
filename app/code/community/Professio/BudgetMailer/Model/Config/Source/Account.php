@@ -5,14 +5,14 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 
 /**
@@ -36,15 +36,18 @@ class Professio_BudgetMailer_Model_Config_Source_Account
     {
         return array(
             array(
-                'label' => Mage::helper('budgetmailer')->__('Display checked checkbox'),
+                'label' => Mage::helper('budgetmailer')
+                    ->__('Display checked checkbox'),
                 'value' => self::CHECKED
             ),
             array(
-                'label' => Mage::helper('budgetmailer')->__('Display unchecked checkbox'),
+                'label' => Mage::helper('budgetmailer')
+                    ->__('Display unchecked checkbox'),
                 'value' => self::UNCHECKED
             ),
             array(
-                'label' => Mage::helper('budgetmailer')->__('Don\'t display checkbox, sign-up automatically'),
+                'label' => Mage::helper('budgetmailer')
+                    ->__('Don\'t display checkbox, sign-up automatically'),
                 'value' => self::HIDDENCHECKED
             ),
         );
@@ -63,7 +66,8 @@ class Professio_BudgetMailer_Model_Config_Source_Account
             self::UNCHECKED => 
                 Mage::helper('budgetmailer')->__('Display unchecked checkbox'),
             self::HIDDENCHECKED => 
-                Mage::helper('budgetmailer')->__('Don\'t display checkbox, sign-up automatically'),
+                Mage::helper('budgetmailer')
+                    ->__('Don\'t display checkbox, sign-up automatically'),
         );
     }   
 }

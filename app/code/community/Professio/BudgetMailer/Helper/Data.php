@@ -5,14 +5,14 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 
 /**
@@ -112,27 +112,14 @@ class Professio_BudgetMailer_Helper_Data extends Mage_Core_Helper_Abstract
     }
     
     /**
-     * Get default website id 
-     * 
-     * @return integer
+     * Get list of category names of all ordered products by customer
+     * @param Mage_Customer_Model_Customer $customer
+     * @return type
      */
-    public function getDefaultWebsiteId()
-    {
-        $resource = Mage::getSingleton('core/resource');
-        $sql = 'SELECT * FROM ' . $resource->getTableName('core/store')
-            . ' WHERE `code` = "default"';
-        
-        $connection = Mage::getSingleton('core/resource')
-            ->getConnection('core_read');
-        
-        $row = $connection->fetchOne($sql);
-        
-        return $row ? $row : 1;
-    }
-    
     public function getCategoryNamesOfOrderedProducts(
         Mage_Customer_Model_Customer $customer
-    ) {
+    )
+    {
         $states = Mage::getSingleton('sales/order_config')
             ->getVisibleOnFrontStates();
         
@@ -146,7 +133,7 @@ class Professio_BudgetMailer_Helper_Data extends Mage_Core_Helper_Abstract
         
         $tags = array();
         
-        foreach($collection->getIterator() as $order) {
+        foreach ($collection->getIterator() as $order) {
             $tags = array_merge($tags, $this->getOrderTags($order));
         }
         

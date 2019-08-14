@@ -5,14 +5,14 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 
 /**
@@ -25,25 +25,15 @@ class Professio_BudgetMailer_Adminhtml_BudgetmailerController
 extends Mage_Adminhtml_Controller_Action
 {
     /**
-     * Check the permission to run it
-     *
+     * Check if current user is allowed to use this controller.
      * @return boolean
      */
     protected function _isAllowed()
     {
         return Mage::getSingleton('admin/session')
-            ->isAllowed('budgetmailer/manage');
+            ->isAllowed('admin/system/convert/professio_budgetmailer');
     }
 
-    /**
-     * Get importer model
-     * @return Professio_BudgetMailer_Model_Importer
-     */
-    protected function getImporter()
-    {
-        return Mage::getSingleton('budgetmailer/importer');
-    }
-    
     /**
      * Get exporter model
      * @return Professio_BudgetMailer_Model_Exporter
@@ -62,30 +52,14 @@ extends Mage_Adminhtml_Controller_Action
         return Mage::getSingleton('adminhtml/session');
     }
     
-    /**
-     * Delete orphans action
-     */
-    public function deleteorphansAction()
+    public function indexAction()
     {
-        try {
-            $rs = $this->getImporter()->deleteOrphans();
-            $this->getSession()->addSuccess(
-                sprintf(
-                    $this->__(
-                        'Delete orphan contacts finished (completed: %d, '
-                        . 'deleted: %d, skipped: %d).'
-                    ),
-                    $rs['completed'], $rs['deleted'], $rs['skipped']
-                )
-            );
-        } catch (Exception $e) {
-            $this->getSession()->addError(
-                $this->__('Deleting of orphan contacts failed.')
-            );
-            Mage::logException($e);
-        }
+        $this->loadLayout();
         
-        $this->_redirect('*/budgetmailer_contact/index');
+        $this->_title(Mage::helper('budgetmailer')->__('BudgetMailer'))
+                ->_title(Mage::helper('budgetmailer')->__('BudgetMailer'));
+        
+        $this->renderLayout();
     }
     
     /**
@@ -110,7 +84,7 @@ extends Mage_Adminhtml_Controller_Action
             Mage::logException($e);
         }
         
-        $this->_redirect('*/budgetmailer_contact/index');
+        $this->_redirect('*/budgetmailer/index');
     }
     
     /**
@@ -132,11 +106,11 @@ extends Mage_Adminhtml_Controller_Action
                 );
         } catch (Exception $e) {
             $this->getSession()
-                ->addError($this->__('Newsletter export failed.'));
+                ->addError($this->__('Subscribers export failed.'));
             Mage::logException($e);
         }
         
-        $this->_redirect('*/budgetmailer_contact/index');
+        $this->_redirect('*/budgetmailer/index');
     }
     
     /**
@@ -162,193 +136,6 @@ extends Mage_Adminhtml_Controller_Action
             Mage::logException($e);
         }
         
-        $this->_redirect('*/budgetmailer_contact/index');
-    }
-    
-    /**
-     * Import budgetmailer contacts action
-     */
-    public function importbudgetmailerAction()
-    {
-        try {
-            $rs = $this->getImporter()->importContacts();
-            $this->getSession()
-                ->addSuccess(
-                    sprintf(
-                        $this->__(
-                            'BudgetMailer contacts import finished (completed: '
-                            . '%d, failed: %d).'
-                        ), 
-                        $rs['completed'], $rs['failed']
-                    )
-                );
-        } catch (Exception $e) {
-            $this->getSession()
-                ->addError($this->__('BudgetMailer contacts import failed.'));
-            Mage::logException($e);
-        }
-        
-        $this->_redirect('*/budgetmailer_contact/index');
-    }
-    
-    /**
-     * Mas subscribe customers or subscribers
-     */
-    public function masssubscribeAction()
-    {
-        try {
-            if ($this->getRequest()->getParam('customer')) {
-                $redirect = '*/customer/index';
-                $rs = $this->getExporter()->massSubscribeCustomers(
-                    $this->getRequest()->getParam('customer'), true
-                );
-                
-                $message = Mage::helper('budgetmailer')->__(
-                    sprintf(
-                        'Subscribed %d customer(s) (fail: %d, success: %d).', 
-                        $rs['total'], $rs['fail'], $rs['success']
-                    )
-                );
-            } elseif ($this->getRequest()->getParam('subscriber')) {
-                $redirect = '*/newsletter_subscriber/index';
-                $rs = $this->getExporter()->massSubscribeSubscribers(
-                    $this->getRequest()->getParam('subscriber'), true
-                );
-                $message = Mage::helper('budgetmailer')->__(
-                    sprintf(
-                        'Subscribed %d subscriber(s) (fail: %d, success: %d).', 
-                        $rs['total'], $rs['fail'], $rs['success']
-                    )
-                );
-            } else {
-                $rs = false;
-                $message = Mage::helper('adminhtml')
-                        ->__('Please select some item(s).');
-            }
-            
-            if ($rs) {
-                Mage::getSingleton('adminhtml/session')->addSuccess($message);
-            } else {
-                Mage::getSingleton('adminhtml/session')->addError($message);
-            }
-            
-            if (isset($redirect)) {
-                $this->_redirect($redirect);
-            }
-        } catch(Exception $e) {
-            Mage::getSingleton('adminhtml/session')->addError($e->getMessage());
-            if (!isset($redirect)) {
-                $redirect = '/';
-            }
-            $this->_redirect($redirect);
-        }
-    }
-    
-    /**
-     * Mass unsubscribe customers or subscribers
-     */
-    public function massunsubscribeAction()
-    {
-        try {
-            if ($this->getRequest()->getParam('customer')) {
-                $redirect = '*/customer/index';
-                $rs = $this->getExporter()->massSubscribeCustomers(
-                    $this->getRequest()->getParam('customer'), false
-                );
-                
-                $message = Mage::helper('budgetmailer')->__(
-                    sprintf(
-                        'Unsubscribed %d customer(s) (fail: %d, success: %d).', 
-                        $rs['total'], $rs['fail'], $rs['success']
-                    )
-                );
-            } elseif ($this->getRequest()->getParam('subscriber')) {
-                $redirect = '*/newsletter_subscriber/index';
-                $rs = $this->getExporter()->massSubscribeSubscribers(
-                    $this->getRequest()->getParam('subscriber'), false
-                );
-                $message = Mage::helper('budgetmailer')->__(
-                    sprintf(
-                        'Unsubscribed %d subscriber(s) '
-                        . '(fail: %d, success: %d).', 
-                        $rs['total'], $rs['fail'], $rs['success']
-                    )
-                );
-            } else {
-                $rs = false;
-                $message = Mage::helper('adminhtml')
-                        ->__('Please select some item(s).');
-            }
-            
-            if ($rs) {
-                Mage::getSingleton('adminhtml/session')->addSuccess($message);
-            } else {
-                Mage::getSingleton('adminhtml/session')->addError($message);
-            }
-            
-            if (isset($redirect)) {
-                $this->_redirect($redirect);
-            }
-        } catch(Exception $e) {
-            Mage::getSingleton('adminhtml/session')->addError($e->getMessage());
-            if (!isset($redirect)) {
-                $redirect = '/';
-            }
-            $this->_redirect($redirect);
-        }
-    }
-    
-    /**
-     * Mass delete customers or subscribers
-     */
-    public function massdeleteAction()
-    {
-        try {
-            if ($this->getRequest()->getParam('customer')) {
-                $redirect = '*/customer/index';
-                $rs = $this->getExporter()->massDeleteCustomers(
-                    $this->getRequest()->getParam('customer'), false
-                );
-                
-                $message = Mage::helper('budgetmailer')->__(
-                    sprintf(
-                        'Deleted %d customer(s) (fail: %d, success: %d).', 
-                        $rs['total'], $rs['fail'], $rs['success']
-                    )
-                );
-            } elseif ($this->getRequest()->getParam('subscriber')) {
-                $redirect = '*/newsletter_subscriber/index';
-                $rs = $this->getExporter()->massDeleteSubscribers(
-                    $this->getRequest()->getParam('subscriber'), false
-                );
-                $message = Mage::helper('budgetmailer')->__(
-                    sprintf(
-                        'Deleted %d subscriber(s) '
-                        . '(fail: %d, success: %d).', 
-                        $rs['total'], $rs['fail'], $rs['success']
-                    )
-                );
-            } else {
-                $rs = false;
-                $message = Mage::helper('adminhtml')
-                        ->__('Please select some item(s).');
-            }
-            
-            if ($rs) {
-                Mage::getSingleton('adminhtml/session')->addSuccess($message);
-            } else {
-                Mage::getSingleton('adminhtml/session')->addError($message);
-            }
-            
-            if (isset($redirect)) {
-                $this->_redirect($redirect);
-            }
-        } catch(Exception $e) {
-            Mage::getSingleton('adminhtml/session')->addError($e->getMessage());
-            if (!isset($redirect)) {
-                $redirect = '/';
-            }
-            $this->_redirect($redirect);
-        }
+        $this->_redirect('*/budgetmailer/index');
     }
 }

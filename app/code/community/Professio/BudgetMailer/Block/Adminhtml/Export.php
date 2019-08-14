@@ -16,12 +16,13 @@
  */
 
 /**
- * Custom exception
+ * Export page template
  *
  * @category    Professio
  * @package     Professio_BudgetMailer
  */
-class Professio_BudgetMailer_Exception extends Mage_Core_Exception
+class Professio_BudgetMailer_Block_Adminhtml_Export
+extends Mage_Adminhtml_Block_Template
 {
     
 }

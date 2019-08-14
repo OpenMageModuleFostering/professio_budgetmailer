@@ -6,14 +6,14 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 -->
 <config>
@@ -30,47 +30,33 @@
                                     </budgetmailer>
                                 </children>
                             </config>
+                            <convert>
+                                <children>
+                                    <professio_budgetmailer translate="title" module="budgetmailer">
+                                        <title>BudgetMailer</title>
+                                    </professio_budgetmailer>
+                                </children>
+                            </convert>
                         </children>
                     </system>
-                    
-                    <professio_budgetmailer translate="title" module="budgetmailer">
-                        <title>BudgetMailer</title>
-                        <children>
-                            <contact translate="title" module="budgetmailer">
-                                <title>Contacts</title>
-                                <sort_order>0</sort_order>
-                            </contact>
-                            <!--<list translate="title" module="budgetmailer">
-                                <title>List</title>
-                                <sort_order>10</sort_order>
-                            </list>-->
-                            <massactions translate="title" module="budgetmailer">
-                                <title>Mass Actions</title>
-                                <sort_order>0</sort_order>
-                            </massactions>
-                        </children>
-                    </professio_budgetmailer>
                 </children>
             </admin>
         </resources>
     </acl>
     
     <menu>
-        <professio_budgetmailer translate="title" module="budgetmailer">
-            <title>BudgetMailer</title>
-            <sort_order>65</sort_order>
+        <system>
             <children>
-                <contact translate="title" module="budgetmailer">
-                    <title>Contacts</title>
-                    <action>adminhtml/budgetmailer_contact</action>
-                    <sort_order>0</sort_order>
-                </contact>
-                <!--<list translate="title" module="budgetmailer">
-                    <title>List</title>
-                    <action>adminhtml/budgetmailer_list</action>
-                    <sort_order>10</sort_order>
-                </list>-->
+                <convert>
+                    <children>
+                        <professio_budgetmailer translate="title" module="budgetmailer">
+                            <title>BudgetMailer</title>
+                            <action>adminhtml/budgetmailer</action>
+                            <sort_order>90</sort_order>
+                        </professio_budgetmailer>
+                    </children>
+                </convert>
             </children>
-        </professio_budgetmailer>
+        </system>
     </menu>
 </config>

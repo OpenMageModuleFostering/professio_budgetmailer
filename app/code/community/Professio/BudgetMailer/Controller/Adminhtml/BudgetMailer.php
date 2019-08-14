@@ -5,14 +5,14 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 
 /**
@@ -25,36 +25,12 @@ class Professio_BudgetMailer_Controller_Adminhtml_BudgetMailer
 extends Mage_Adminhtml_Controller_Action
 {
     /**
-     * Upload file and get the uploaded name
-     * 
-     * @param string $input
-     * @param string $destinationFolder
-     * @param array $data
-     * @return string
+     * Check if current user is allowed to use this controller.
+     * @return boolean
      */
-    protected function _uploadAndGetName($input, $destinationFolder, $data) 
+    protected function _isAllowed()
     {
-        try{
-            if (isset($data[$input]['delete'])) {
-                return '';
-            } else {
-                $uploader = new Varien_File_Uploader($input);
-                $uploader->setAllowRenameFiles(true);
-                $uploader->setFilesDispersion(true);
-                $uploader->setAllowCreateFolders(true);
-                $result = $uploader->save($destinationFolder);
-                return $result['file'];
-            }
-        }
-        catch (Exception $e) {
-            if ($e->getCode() != Varien_File_Uploader::TMP_NAME_EMPTY) {
-                throw $e;
-            } else {
-                if (isset($data[$input]['value'])) {
-                    return $data[$input]['value'];
-                }
-            }
-        }
-        return '';
+        return Mage::getSingleton('admin/session')
+            ->isAllowed('admin/system/convert/professio_budgetmailer');
     }
 }

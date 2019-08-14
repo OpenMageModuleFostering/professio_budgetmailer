@@ -15,13 +15,27 @@
  * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 
-/**
- * Custom exception
- *
- * @category    Professio
- * @package     Professio_BudgetMailer
- */
-class Professio_BudgetMailer_Exception extends Mage_Core_Exception
-{
-    
+if (Mage::getIsDeveloperMode()) {
+    Mage::log('budgetmailer_setup started');
+}
+
+$this->startSetup();
+
+$rsCont = $this->getConnection()->dropTable(
+    $this->getTable('budgetmailer/contact')
+);
+$rsList = $this->getConnection()->dropTable(
+    $this->getTable('budgetmailer/list')
+);
+
+if (Mage::getIsDeveloperMode()) {
+    Mage::log(
+        'budgetmailer_setup $rsCont: ' . $rsCont . ', $rsList: ' . $rsList
+    );
+}
+
+$this->endSetup();
+
+if (Mage::getIsDeveloperMode()) {
+    Mage::log('budgetmailer_setup ended');
 }

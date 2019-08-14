@@ -5,14 +5,14 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 
 /**
@@ -29,14 +29,14 @@ class Professio_BudgetMailer_Model_Config_Source_List
     {
         if (!isset($this->_lists)) {
             try {
-                $collection = Mage::getModel('budgetmailer/list')
-                    ->getCollection();
-
-                if ($collection) {
-                    $collection->load();
-                    $this->_lists = $collection->getIterator();
-                } else {
-                    $this->_lists = array();
+                $client = Mage::getModel('budgetmailer/client')
+                    ->getClient();
+                $lists = $client->getLists();
+                
+                if (is_array($lists) && count($lists)) {
+                    foreach ($lists as $list) {
+                        $this->_lists[$list->id] = $list->list;
+                    }
                 }
             } catch (Exception $e) {
                 $this->_lists = array();
@@ -64,14 +64,14 @@ class Professio_BudgetMailer_Model_Config_Source_List
             $options = array();
             
             $options[] = array(
-                'value' => 0,
+                'value' => '',
                 'label' => Mage::helper('budgetmailer')->__('Select List')
             );
             
-            foreach ($this->getLists() as $list) {
+            foreach ($this->getLists() as $listId => $listName) {
                 $options[] = array(
-                    'value' => $list->getBudgetmailerId(),
-                    'label' => $list->getName()
+                    'value' => $listId,
+                    'label' => $listName
                 );
             }
         }
@@ -89,12 +89,10 @@ class Professio_BudgetMailer_Model_Config_Source_List
         static $array;
         
         if (!isset($array)) {
-            $array = array();
-            $array[0] = Mage::helper('budgetmailer')->__('Select List');
-            
-            foreach ($this->getLists() as $list) {
-                $array[$list->getId()] = $list->getName();
-            }
+            $array = array(
+                0 => Mage::helper('budgetmailer')->__('Select List')
+            );
+            $array = array_merge($array, $this->getLists());
         }
         
         return $array;

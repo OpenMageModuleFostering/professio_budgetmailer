@@ -5,14 +5,14 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 
 /**
@@ -21,16 +21,17 @@
  * @category   Professio
  * @package    Professio_BudgetMailer
  */
+
 class Professio_BudgetMailer_Model_Observer
 {
     /**
      * Get BudgetMailer API client
      * 
-     * @return Professio_BudgetMailer_Model_Client
+     * @return \BudgetMailer\Api\Client
      */
     protected function getClient()
     {
-        return Mage::getSingleton('budgetmailer/client');
+        return Mage::getSingleton('budgetmailer/client')->getClient();
     }
     
     /**
@@ -76,6 +77,34 @@ class Professio_BudgetMailer_Model_Observer
     }
     
     /**
+     * Check if current address is the right type.
+     * @param type $address
+     * @param type $customer
+     */
+    protected function isAddressSaveAfter($address, $customer)
+    {
+        if ($customer->getDefaultBillingAddress()) {
+            $billing = $address->getEntityId() == $customer
+                ->getDefaultBillingAddress()->getEntityId()
+                && Mage::helper('budgetmailer/config')
+                    ->isAddressTypeBilling();
+        } else {
+            $billing = false;
+        }
+
+        if ($customer->getDefaultShippingAddress()) {
+            $shipping = $address->getEntityId() == $customer
+                ->getDefaultShippingAddress()->getEntityId()
+                && Mage::helper('budgetmailer/config')
+                    ->isAddressTypeShipping();
+        } else {
+            $shipping = false;
+        }
+        
+        return $billing || $shipping;
+    }
+    
+    /**
      * After address save, check if primary and update contact
      * 
      * @param Varien_Event_Observer $observer
@@ -84,55 +113,49 @@ class Professio_BudgetMailer_Model_Observer
     {
         $this->log('budgetmailer/observer::addressSaveAfter() start');
         
+        $request = $this->getRequest();
+        
+        if ('customer' == $request->getModuleName() 
+            && 'account' == $request->getControllerName() 
+            && 'editPost' == $request->getActionName()
+        ) {
+            // INFO if saving customer don't fire this event
+            $this->log(
+                'budgetmailer/observer::addressSaveAfter() skip duplic. event'
+            );
+            
+            return;
+        }
+        
         try {
             if (Mage::helper('budgetmailer/config')
                     ->isAdvancedOnAddressUpdateEnabled()
-                ) {                
+                ) {
                 $address = $observer->getCustomerAddress();
                 $customer = $address->getCustomer();
                 
-                $this->log(
-                    'budgetmailer/observer::addressSaveAfter address id: ' 
-                    . $address->getEntityId()
-                );
-                
-                if ($customer && $customer->getEntityId()) {
-                    $contact = Mage::getModel('budgetmailer/contact')
-                        ->loadByCustomer($customer);
-                    
-                    if ($contact && $contact->getEntityId()) {
-                        $addressPrimary = Mage::helper('budgetmailer')
-                            ->getCustomersPrimaryAddress($customer);
-                        
-                        // check if primary address
-                        if (!$addressPrimary 
-                            || ($addressPrimary->getEntityId() 
-                            == $address->getEntityId())
-                        ) {
+                if ($this->isAddressSaveAfter($address, $customer)) {
+
+                    if ($customer && $customer->getEntityId()) {
+                        $client = $this->getClient();
+                        $contact = $client->getContact($customer->getEmail());
+
+                        if ($contact) {
                             Mage::helper('budgetmailer/mapper')
-                                ->addressToModel($address, $contact);
-                            
-                            $contact->save();
-                            
-                            $this->log(
-                                'budgetmailer/observer::addressSaveAfter() '
-                                . 'updated contact'
-                            );
-                        } else {
-                            $this->log(
-                                'budgetmailer/observer::addressSaveAfter() '
-                                . 'DIDN\'T update contact'
-                            );
+                                ->addressToContact(
+                                    $address, $contact
+                                );
+
+                            $client->putContact($contact->email, $contact);
                         }
                     } else {
                         $this->log(
-                            'budgetmailer/observer::addressSaveAfter() '
-                            . 'no contact'
+                            'budgetmailer/observer::addressSaveAfter() no cust.'
                         );
                     }
                 } else {
                     $this->log(
-                        'budgetmailer/observer::addressSaveAfter() no customer'
+                        'budgetmailer/observer::addressSaveAfter() wrong type'
                     );
                 }
             } else {
@@ -165,14 +188,31 @@ class Professio_BudgetMailer_Model_Observer
         try {
             if (Mage::helper('budgetmailer/config')
                     ->isAdvancedOnCustomerDeleteEnabled()
+                || Mage::helper('budgetmailer/config')
+                    ->isAdvancedOnCustomerDeleteUnsubscribeEnabled()
                 ) {
                 $customer = $observer->getCustomer();
+                $client = Mage::getSingleton('budgetmailer/client')
+                    ->getStoreClient($customer->getStoreId());
+                $email = $customer->getEmail();
+                $contact = $client->getContact($email);
                 
-                $contact = Mage::getModel('budgetmailer/contact');
-                $contact->loadByCustomer($customer);
-                
-                if ($contact->getEntityId()) {
-                    $contact->delete();
+                if ($contact) {
+                    if (Mage::helper('budgetmailer/config')
+                        ->isAdvancedOnCustomerDeleteUnsubscribeEnabled()) {
+                        $contact->subscribe = false;
+                        $contact->unsubscribed = true;
+                        
+                        $client->putContact($contact->email, $contact);
+                        
+                        $this->log(
+                            'budgetmailer/observer::customerDeleteAfter() '
+                            . 'unsubscribe / delete contact for customer id: '
+                            . $customer->getEntityId()
+                        );
+                    }
+                    
+                    $client->deleteContact($email);
                     
                     $this->log(
                         'budgetmailer/observer::customerDeleteAfter() '
@@ -215,67 +255,51 @@ class Professio_BudgetMailer_Model_Observer
         $this->log('budgetmailer/observer::customerSaveAfterAdmin() start');
         
         try {
-            $contactData = $this->getRequest()->getPost('contact');
-
+            if (!Mage::helper('budgetmailer/config')
+                ->isAdvancedOnCustomerUpdateEnabled() ) {
+                // nothing to do
+                $this->log(
+                    'budgetmailer/observer::customerSaveAfterAdmin() disabled'
+                );
+                return;
+            }
+            
             $customer = $observer->getEvent()->getCustomer();
-            $contact = Mage::getModel('budgetmailer/contact')
-                ->loadByCustomer($customer);
+            $client = Mage::getSingleton('budgetmailer/client')
+                ->getStoreClient($customer->getStoreId());
             
-            $this->log(
-                'budgetmailer/observer::customerSaveAfterAdmin() contact: ' 
-                . $contact->getEntityId() . ', customer: ' 
-                . $customer->getEntityId()
-            );
+            $email = $customer->getOrigData('email') 
+                ? $customer->getOrigData('email')
+                : $customer->getData('email');
 
-            // MAP CONTACT DATA
-            $hasContactData = is_array($contactData) && count($contactData);
+            $contact = $client->getContact($email);
+            $subscribe = $this->getRequest()->getPost('budgetmailer_subscribe');
             
-            if ($hasContactData) {
-                $contactData['unsubscribed'] = 
-                    !isset($contactData['subscribe']);
-                $contact->addData($contactData);
-
-                $this->log(
-                    'budgetmailer/observer::customerSaveAfterAdmin() '
-                    . 'mapped contact data to contact: '
-                    . json_encode($contactData) . '.'
-                );
+            if (!$contact && !$subscribe) {
+                // nothing to do 2
+                return;
+            }
+            
+            if (!$contact) {
+                $contact = new stdClass();
+                $new = true;
             } else {
-                $this->log(
-                    'budgetmailer/observer::customerSaveAfterAdmin() '
-                    . 'no contact data.'
-                );
+                // unsub only if contact
+                $new = false;
             }
+
+            Mage::helper('budgetmailer/mapper')
+                ->customerToContact($customer, $contact);
             
-            // MAP CUSTOMER
-            if (Mage::helper('budgetmailer/config')
-                    ->isAdvancedOnCustomerUpdateEnabled()
-                ) {
-                Mage::helper('budgetmailer/mapper')
-                    ->customerToModel($customer, $contact);
-                
-                $this->log(
-                    'budgetmailer/observer::customerSaveAfterAdmin() '
-                    . 'mapped customer to contact.'
-                );
+            $contact->subscribe = $subscribe;
+            $contact->unsubscribed = !$subscribe;
+            
+            if ($new) {
+                $client->postContact($contact);
             } else {
-                $this->log(
-                    'budgetmailer/observer::customerSaveAfterAdmin() '
-                    . 'customer update disabled.'
-                );
+                $client->putContact($email, $contact);
             }
-
-            $this->customerSaveAfterAdminAddress($contact, $customer);
             
-            if ($contact->getEntityId() 
-                || ( $hasContactData && isset($contactData['subscribe']) ) 
-            ) {
-                $this->log(
-                    'budgetmailer/observer::customerSaveAfterAdmin() saving.'
-                );
-
-                $contact->save();
-            }
         } catch (Exception $e) {
             $this->getSession()->addError($e->getMessage());
             $this->log(
@@ -286,38 +310,6 @@ class Professio_BudgetMailer_Model_Observer
         }
         
         $this->log('budgetmailer/observer::customerSaveAfterAdmin() end');
-    }
-    
-    protected function customerSaveAfterAdminAddress($contact, $customer)
-    {
-        // MAP ADDRESS 
-        if (Mage::helper('budgetmailer/config')
-                ->isAdvancedOnAddressUpdateEnabled()
-            && $customer && $customer->getEntityId()
-        ) {
-            $address = Mage::helper('budgetmailer')
-                ->getCustomersPrimaryAddress($customer);
-
-            if ($address && $address->getEntityId()) {
-                $this->log(
-                    'budgetmailer/observer::customerSaveAfterAdmin()'
-                    . ' mapping address: ' . $address->getEntityId() 
-                );
-
-                Mage::helper('budgetmailer/mapper')
-                    ->addressToModel($address, $contact);
-            } else {
-                $this->log(
-                    'budgetmailer/observer::customerSaveAfterAdmin() '
-                    . 'no address'
-                );
-            }
-        } else {
-            $this->log(
-                'budgetmailer/observer::customerSaveAfterAdmin() '
-                . 'not mapping address'
-            );
-        }
     }
     
     /**
@@ -332,73 +324,43 @@ class Professio_BudgetMailer_Model_Observer
         $this->log('budgetmailer/observer::customerSaveAfterFront() start');
         
         try {
-            $bmIsSubscribed = $this->getRequest()->get('bm_is_subscribed');
-            $changed = false;
+            if (!Mage::helper('budgetmailer/config')
+                ->isAdvancedOnCustomerUpdateEnabled() ) {
+                // nothing to do
+                $this->log(
+                    'budgetmailer/observer::customerSaveAfterFront() disabled'
+                );
+                return;
+            }
             
+            $client = $this->getClient();
             $customer = $observer->getEvent()->getCustomer();
-            $contact = Mage::getModel('budgetmailer/contact')
-                ->loadByCustomer($customer);
             
-            $this->log(
-                'budgetmailer/observer::customerSaveAfterFront() contact: ' 
-                . $contact->getEntityId() . ', customer: ' 
-                . $customer->getEntityId()
-            );
+            $email = $customer->getOrigData('email') 
+                ? $customer->getOrigData('email')
+                : $customer->getData('email');
+
+            $contact = $client->getContact($email);
             
-            if ($bmIsSubscribed) {
-                $changed = true;
+            $subscribe = Mage::app()->getRequest()->getPost('bm_is_subscribed');
+            
+            if ($contact) {
+                Mage::helper('budgetmailer/mapper')->customerToContact(
+                    $customer, $contact
+                );
                 
-                $contact->setSubscribe(true);
-                $contact->setUnsubscribed(false);
+                $client->putContact($email, $contact);
+            } else if ($subscribe) {
+                $contact = new stdClass();
                 
-                $this->log(
-                    'budgetmailer/observer::customerSaveAfterFront() '
-                    . 'subscribing.'
+                Mage::helper('budgetmailer/mapper')->customerToContact(
+                    $customer, $contact
                 );
-            } else {
-                $this->log(
-                    'budgetmailer/observer::customerSaveAfterFront() '
-                    . 'not subscribing.'
-                );
-            }
-            
-            if (Mage::helper('budgetmailer/config')
-                    ->isAdvancedOnCustomerUpdateEnabled()
-            ) {
-                if ($contact->getEntityId() || $bmIsSubscribed) {
-                    $changed = true;
-                    
-                    Mage::helper('budgetmailer/mapper')
-                        ->customerToModel($customer, $contact);
-                    
-                    $this->log(
-                        'budgetmailer/observer::customerSaveAfterFront() '
-                        . 'mapped customer to contact.'
-                    );
-                } else {
-                    // INFO this was creating contacts without subscribing
-                    $this->log(
-                        'budgetmailer/observer::customerSaveAfterFront() '
-                        . 'DIDN\'T mapped customer to contact, because '
-                        . 'contact doesnt\'t exist yet..'
-                    );
-                }
-            } else {
-                $this->log(
-                    'budgetmailer/observer::customerSaveAfterFront() '
-                    . 'customer update disabled.'
-                );
-            }
-            
-            if ($changed) {
-                $this->log(
-                    'budgetmailer/observer::customerSaveAfterFront() saving.'
-                );
-                $contact->save();
-            } else {
-                $this->log(
-                    'budgetmailer/observer::customerSaveAfterFront() not saved.'
-                );
+                
+                $contact->subscribe = $subscribe;
+                $contact->unsubscribed = !$subscribe;
+                
+                $client->postContact($contact);
             }
         } catch (Exception $e) {
             $this->getSession()->addError($e->getMessage());
@@ -423,49 +385,45 @@ class Professio_BudgetMailer_Model_Observer
         $this->log('budgetmailer/observer::salesOrderPlaceAfter() start');
         
         try {
-            $budgetmailerSubscribe = Mage::app()->getRequest()
+            $subscribe = Mage::app()->getRequest()
                 ->getPost('bm_is_subscribed');
             
-            if ($budgetmailerSubscribe) {
-                $order = $observer->getEvent()->getOrder();
-                $email = $order->getCustomerEmail();
-                
-                $contact = Mage::getModel('budgetmailer/contact');
-                $contact->loadByEmail($email);
-                
-                Mage::helper('budgetmailer/mapper')
-                    ->addressToModel($order->getBillingAddress(), $contact);
-                Mage::helper('budgetmailer/mapper')
-                    ->orderToModel($order, $contact);
-                
-                $contact->setSubscribe(true);
-                $contact->save();
-            }
+            $client = Mage::getSingleton('budgetmailer/client')->getClient();
             
+            $order = $observer->getEvent()->getOrder();
+            $email = $order->getCustomerEmail();
+            $contact = $client->getContact($email);
+            
+            if ($subscribe) {
+                if (!$contact) {
+                    $contact = new stdClass();
+
+                    Mage::helper('budgetmailer/mapper')
+                        ->orderToContact($order, $contact);
+                    
+                    $new = true;
+                } else {
+                    $new = false;
+                }
+                
+                $contact->subscribe = $subscribe;
+                $contact->unsubscribed = !$subscribe;
+
+                if ($new) {
+                    $client->postContact($contact);
+                } else {
+                    $client->putContact($contact->email, $contact);
+                }
+            }
+
             if (Mage::helper('budgetmailer/config')
                 ->isAdvancedOnOrderEnabled()) {
-                $order = $observer->getEvent()->getOrder();
-                $contact = Mage::getModel('budgetmailer/contact');
-                $customer = $order->getCustomer();
-                
-                $contact->loadByCustomer($customer);
-                
-                $this->log(
-                    'budgetmailer/observer::salesOrderPlaceAfter() order: ' 
-                    . $order->getEntityId() . ', customer: ' 
-                    . $customer->getEntityId() . ', contact: ' 
-                    . $contact->getEntityId()
-                );
-                
-                if ($contact->getEntityId()) {
+
+                if ($contact) {
                     $orderTags = Mage::helper('budgetmailer')
                         ->getOrderTags($order);
                     
-                    $this->log(
-                        'budgetmailer/observer::salesOrderPlaceAfter() '
-                        . 'adding tags: ' . json_encode($orderTags)
-                    );
-                    $contact->addTags($orderTags, false);
+                    $client->postTags($email, $orderTags);
                 }
             } else {
                 $this->log(
@@ -486,42 +444,8 @@ class Professio_BudgetMailer_Model_Observer
     }
     
     /**
-     * Cron method. Periodically delete orphans, and import new contacts
-     */
-    public function cron()
-    {
-        Mage::log('budgetmailer/observer::cron() start');
-        
-        if (Mage::helper('budgetmailer/config')->isSyncCronEnabled()) {
-            try {
-                $rs = Mage::getSingleton('budgetmailer/importer')
-                    ->deleteOrphans();
-                $rs = Mage::getSingleton('budgetmailer/importer')
-                    ->importContacts();
-
-                Mage::log(
-                    ($rs
-                        ? 'budgetmailer/observer::cron() no contacts' 
-                        : 'budgetmailer/observer::cron() completed: ' 
-                            . $rs['completed'] . ', failed: ' . $rs['failed']
-                    )
-                );
-            } catch (Exception $e) {
-                $this->getSession()->addError($e->getMessage());
-                Mage::log(
-                    'budgetmailer/observer::cron() failed with exception: ' 
-                    . $e->getMessage()
-                );
-                Mage::logException($e);
-            }
-        }
-        
-        Mage::log('budgetmailer/observer::cron() end');
-    }
-    
-    /**
      * After saving configuration of BudgetMailer - validate API key 
-     * and secret. Initiate lists collection.
+     * and secret. Optionally flush cache (if disabled).
      * 
      * @param Varien_Event_Observer $observer
      */
@@ -530,27 +454,22 @@ class Professio_BudgetMailer_Model_Observer
         $this->log('budgetmailer/observer::afterConfigChange() start');
         
         try {
-            $p = $this->getRequest()->getPost();
-            $t = $this->getClient()
-                ->testApiCredentials($p['groups']['api']['fields']);
-
-            if (!$t) {
+            if (!$this->getClient()->isConnected()) {
                 $this->getSession()->addError(
                     Mage::helper('budgetmailer')
                     ->__('Invalid API endpoint, key and secret combination.')
                 );
             } else {
-                // INFO this block could be in testApiCredentials
-                $list = Mage::getModel('budgetmailer/list');
-                $collection = $list->getCollection();
-                $collection->load(false, false, true, true);
-            
                 $this->getSession()->addSuccess(
                     Mage::helper('budgetmailer')
                         ->__(
                             'API endpoint, key and secret combination is valid.'
                         )
                 );
+            }
+            
+            if (!Mage::helper('budgetmailer/config')->isCacheEnabled()) {
+                $this->getClient()->getCache()->purge();
             }
         } catch (Exception $e) {
                 $this->getSession()->addError($e->getMessage());

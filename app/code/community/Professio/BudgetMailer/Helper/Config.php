@@ -5,14 +5,14 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 
 /**
@@ -44,9 +44,8 @@ class Professio_BudgetMailer_Helper_Config extends Mage_Core_Helper_Abstract
     
     const CONFIG_PATH_GENERAL_LIST = 'budgetmailer/general/list';
     
-    const CONFIG_PATH_SYNC_CRON = 'budgetmailer/sync/cron';
-    const CONFIG_PATH_SYNC_WEBHOOK = 'budgetmailer/sync/webhook';
-    const CONFIG_PATH_SYNC_TTL = 'budgetmailer/sync/ttl';
+    const CONFIG_PATH_CACHE_ENABLED = 'budgetmailer/cache/enabled';
+    const CONFIG_PATH_CACHE_TTL = 'budgetmailer/cache/ttl';
     
     /**
      * Get address type
@@ -61,8 +60,33 @@ class Professio_BudgetMailer_Helper_Config extends Mage_Core_Helper_Abstract
     /**
      * Get sign-up configuration while creating an account
      */
-    public function getAdvancedCreateAccount() {
-        return Mage::getStoreConfig(self::CONFIG_PATH_ADVANCED_ON_CREATE_ACCOUNT);
+    public function getAdvancedCreateAccount()
+    {
+        return Mage::getStoreConfig(
+            self::CONFIG_PATH_ADVANCED_ON_CREATE_ACCOUNT
+        );
+    }
+    
+    /**
+     * Get if selected address type is billing
+     * 
+     * @return boolean
+     */
+    public function isAddressTypeBilling()
+    {
+        return $this->getAdvancedAddressType() == 
+            Professio_BudgetMailer_Model_Config_Source_Address::BILLING;
+    }
+    
+    /**
+     * Get if selected address type is shipping
+     * 
+     * @return boolean
+     */
+    public function isAddressTypeShipping()
+    {
+        return $this->getAdvancedAddressType() == 
+            Professio_BudgetMailer_Model_Config_Source_Address::SHIPPING;
     }
     
     /**
@@ -110,6 +134,23 @@ class Professio_BudgetMailer_Helper_Config extends Mage_Core_Helper_Abstract
     }
     
     /**
+     * Get on customer delete and unsubscribe enabled
+     * 
+     * @return boolean
+     */
+    public function isAdvancedOnCustomerDeleteUnsubscribeEnabled()
+    {
+        $c = Professio_BudgetMailer_Model_Config_Source_Delete
+            ::ON_DELETE_DEL_UNSUB;
+        
+        $v = Mage::getStoreConfig(
+            self::CONFIG_PATH_ADVANCED_ON_CUSTOMER_DELETE
+        );
+        
+        return $c == $v;
+    }
+    
+    /**
      * Get on customer update enabled
      * 
      * @return boolean
@@ -135,6 +176,30 @@ class Professio_BudgetMailer_Helper_Config extends Mage_Core_Helper_Abstract
     {
         return Mage::getStoreConfig(
             self::CONFIG_PATH_ADVANCED_ON_ORDER
+        );
+    }
+    
+    /**
+     * Get config for budgetmailer client.
+     * 
+     * @return array associative array
+     */
+    public function getApiConfig()
+    {
+        return array(
+            'cache' => $this->isCacheEnabled(),
+            'cacheDir' => Mage::getBaseDir('var') . '/cache/bm/',
+            'endPoint' => $this->getApiEndpoint(),
+            'key' => $this->getApiKey(),
+            // name of the budgetmailer list you want to use as a default
+            'list' => $this->getGeneralList(false),
+            // your API secret
+            'secret' => $this->getApiSecret(),
+            // advanced: socket timeout
+            'timeOutSocket' => 10,
+            // advanced: socket stream read timeout
+            'timeOutStream' => 10,
+            'ttl' => $this->getCacheTtl(),
         );
     }
     
@@ -171,49 +236,44 @@ class Professio_BudgetMailer_Helper_Config extends Mage_Core_Helper_Abstract
     /**
      * Get API list
      * 
-     * @return string
+     * @param boolean $throwException throw exception if list not set
+     * @return null|string null (if false = $throwException) or list string
      * @throws Professio_BudgetMailer_Exception
      */
-    public function getGeneralList()
+    public function getGeneralList($throwException = true)
     {
         $generalList = Mage::getStoreConfig(self::CONFIG_PATH_GENERAL_LIST);
         
         if (empty($generalList)) {
-            throw new Professio_BudgetMailer_Exception(
-                $this->__('BudgetMailer list is not set.')
-            );
+            if ($throwException) {
+                throw new Professio_BudgetMailer_Exception(
+                    $this->__('BudgetMailer list is not set.')
+                );
+            } else {
+                $generalList = null;
+            }
         }
         
         return $generalList;
     }
     
     /**
-     * Get sync cron
-     * 
-     * @return boolean
-     */
-    public function isSyncCronEnabled()
-    {
-        return Mage::getStoreConfig(self::CONFIG_PATH_SYNC_CRON);
-    }
-    
-    /**
-     * Get sync webhook
-     * 
-     * @return boolean
-     */
-    public function isSyncWebhookEnabled()
-    {
-        return Mage::getStoreConfig(self::CONFIG_PATH_SYNC_WEBHOOK);
-    }
-    
-    /**
-     * Get sync ttl
+     * Get cache enabled
      * 
      * @return integer
      */
-    public function getSyncTtl()
+    public function isCacheEnabled()
     {
-        return Mage::getStoreConfig(self::CONFIG_PATH_SYNC_TTL);
+        return Mage::getStoreConfig(self::CONFIG_PATH_CACHE_ENABLED);
+    }
+    
+    /**
+     * Get cache ttl
+     * 
+     * @return integer
+     */
+    public function getCacheTtl()
+    {
+        return Mage::getStoreConfig(self::CONFIG_PATH_CACHE_TTL);
     }
 }

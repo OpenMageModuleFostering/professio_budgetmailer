@@ -6,14 +6,14 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 -->
 <config>
@@ -44,11 +44,11 @@
             
             <customer_save_after>
                 <observers>
-                    <budgetmailer_customer_customer_save_after>
+                    <budgetmailer_customer_save_after>
                         <class>budgetmailer/observer</class>
                         <method>customerSaveAfterAdmin</method>
                         <type>singleton</type>
-                    </budgetmailer_customer_customer_save_after>
+                    </budgetmailer_customer_save_after>
                 </observers>
             </customer_save_after>
 	</events>
@@ -72,15 +72,6 @@
         </translate>
     </adminhtml>
     
-    <crontab>
-        <jobs>
-            <budgetmailer_cron>
-                <schedule><cron_expr>0 1 * * *</cron_expr></schedule>
-                <run><model>budgetmailer/observer::cron</model></run>
-            </budgetmailer_cron>
-        </jobs>
-    </crontab>
-
     <default>
         <budgetmailer>
             <api>
@@ -93,11 +84,10 @@
                 <list></list>
             </general>
             
-            <sync>
-                <cron>1</cron>
-                <webhook>1</webhook>
+            <cache>
+                <enabled>1</enabled>
                 <ttl>86400</ttl>
-            </sync>
+            </cache>
             
             <advanced>
                 <address_type>billing</address_type>
@@ -115,11 +105,11 @@
         <events>
             <customer_save_after>
                 <observers>
-                    <budgetmailer_customer_customer_save_after>
+                    <budgetmailer_customer_save_after>
                         <class>budgetmailer/observer</class>
                         <method>customerSaveAfterFront</method>
                         <type>singleton</type>
-                    </budgetmailer_customer_customer_save_after>
+                    </budgetmailer_customer_save_after>
                 </observers>
             </customer_save_after>
             
@@ -183,21 +173,21 @@
         <events>
             <customer_address_save_after>
                 <observers>
-                    <budgetmailer_customer_customer_save_after>
+                    <budgetmailer_customer_address_save_after>
                         <class>budgetmailer/observer</class>
                         <method>addressSaveAfter</method>
                         <type>singleton</type>
-                    </budgetmailer_customer_customer_save_after>
+                    </budgetmailer_customer_address_save_after>
                 </observers>
             </customer_address_save_after>
             
             <customer_delete_after>
                 <observers>
-                    <budgetmailer_customer_customer_delete_after>
+                    <budgetmailer_customer_delete_after>
                         <class>budgetmailer/observer</class>
                         <method>customerDeleteAfter</method>
                         <type>singleton</type>
-                    </budgetmailer_customer_customer_delete_after>
+                    </budgetmailer_customer_delete_after>
                 </observers>
             </customer_delete_after>
         </events>
@@ -207,12 +197,12 @@
                 <class>Professio_BudgetMailer_Model</class>
                 <resourceModel>budgetmailer_resource</resourceModel>
             </budgetmailer>
-            <budgetmailer>
-                <class>Professio_BudgetMailer_Model</class>
-                <resourceModel>budgetmailer_resource</resourceModel>
-            </budgetmailer>
             <budgetmailer_resource>
                 <class>Professio_BudgetMailer_Model_Resource</class>
+                <!--
+                    XXX remove entities in one of next versions 
+                    1.0.5 or rather 1.0.6 (need them in 1.0.4 for uninstall)
+                -->
                 <entities>
                     <contact>
                         <table>budgetmailer_contact</table>
@@ -236,7 +226,7 @@
     
     <modules>
         <Professio_BudgetMailer>
-            <version>1.0.1</version>
+            <version>1.0.4</version>
         </Professio_BudgetMailer>
     </modules>
     

@@ -5,23 +5,25 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 
 /**
- * Override of checkout agreements allowing newsletter sign-up for onepage checkout.
+ * Override of checkout agreements allowing newsletter sign-up 
+ * for onepage checkout.
  *
  * @category    Professio
  * @package     Professio_BudgetMailer
  */
-class Professio_BudgetMailer_Block_CheckoutAgreements extends Mage_Checkout_Block_Agreements
+class Professio_BudgetMailer_Block_CheckoutAgreements
+extends Mage_Checkout_Block_Agreements
 {
     /**
      * Override block template
@@ -30,9 +32,12 @@ class Professio_BudgetMailer_Block_CheckoutAgreements extends Mage_Checkout_Bloc
      */
     protected function _toHtml()
     {
-        if (substr_count($_SERVER['REQUEST_URI'], 'onepage')) {
+        $uri = filter_input(INPUT_SERVER, 'REQUEST_URI');
+        
+        if (substr_count($uri, 'onepage')) {
             $this->setTemplate('budgetmailer/onepage-agreements.phtml');
         }
+        
         return parent::_toHtml();
     }
 
@@ -40,13 +45,20 @@ class Professio_BudgetMailer_Block_CheckoutAgreements extends Mage_Checkout_Bloc
      * Check if customer is signed up
      * @return bool
      */
-    public function isCurrentCustomerSignedUp() {
-        if(Mage::getSingleton('customer/session')->isLoggedIn()) {
+    public function isCurrentCustomerSignedUp()
+    {
+        if (Mage::getSingleton('customer/session')->isLoggedIn()) {
             $customer = Mage::getSingleton('customer/session')->getCustomer();
-            $contact = Mage::getModel('budgetmailer/contact');
-            $contact->loadByCustomer($customer);
             
-            return $contact->getId() > 0;
+            if ($customer) {
+                $client = Mage::getSingleton('budgetmailer/client')
+                    ->getClient();
+                $contact = $client->getContact($customer->getEmail());
+                
+                if ($contact && !$contact->unsubscribed) {
+                    return true;
+                }
+            }
         }
         
         return false;
@@ -56,8 +68,9 @@ class Professio_BudgetMailer_Block_CheckoutAgreements extends Mage_Checkout_Bloc
      * Check if sign-up is hidden
      * @return bool
      */
-    public function isSignupHidden() {
-        return Professio_BudgetMailer_Model_Config_Source_Account::HIDDENCHECKED 
+    public function isSignupHidden()
+    {
+        return Professio_BudgetMailer_Model_Config_Source_Account::HIDDENCHECKED
             == Mage::helper('budgetmailer/config')->getAdvancedCreateAccount();
     }
     
@@ -65,12 +78,15 @@ class Professio_BudgetMailer_Block_CheckoutAgreements extends Mage_Checkout_Bloc
      * Check if sign-up is checked
      * @return bool
      */
-    public function isSignupChecked() {
+    public function isSignupChecked()
+    {
         $v = Mage::helper('budgetmailer/config')->getAdvancedCreateAccount();
         
         return 
-            Professio_BudgetMailer_Model_Config_Source_Account::HIDDENCHECKED == $v
-            || Professio_BudgetMailer_Model_Config_Source_Account::CHECKED == $v;
+            Professio_BudgetMailer_Model_Config_Source_Account::HIDDENCHECKED
+            == $v
+            || Professio_BudgetMailer_Model_Config_Source_Account::CHECKED
+            == $v;
     }
     
     /**

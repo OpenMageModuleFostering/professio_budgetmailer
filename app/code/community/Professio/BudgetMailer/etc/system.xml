@@ -6,14 +6,14 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 -->
 <config>
@@ -63,7 +63,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <comment>Insert your BudgetMailer API Secret. </comment>
+                            <comment>Insert your BudgetMailer API Secret.</comment>
                         </secret>
                     </fields>
                 </api>
@@ -89,47 +89,36 @@
                     </fields>
                 </general>
                 
-                <sync translate="label" module="budgetmailer"> 
-                    <label>Synchronization</label>
+                <cache translate="label" module="budgetmailer"> 
+                    <label>Cache</label>
                     <frontend_type>text</frontend_type>
                     <sort_order>30</sort_order>
                     <show_in_default>1</show_in_default>
                     <show_in_website>1</show_in_website>
                     <show_in_store>1</show_in_store>
                     <fields>
-                        <cron translate="label comment" module="budgetmailer">
-                            <label>Use Cron Job</label>
+                        <enabled translate="label comment" module="budgetmailer">
+                            <label>Cache</label>
                             <frontend_type>select</frontend_type>
                             <source_model>adminhtml/system_config_source_yesno</source_model>
                             <sort_order>10</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <comment>In this mode, data will be synchronized periodically, every day at 1 a.m.</comment>
-                        </cron>
+                            <comment>Enable or disable BudgetMailer API client response caching (can save up to 50% of the requests).</comment>
+                        </enabled>
                         
-                        <webhook translate="label comment" module="budgetmailer">
-                            <label>Use webhook</label>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                        <ttl translate="label comment" module="budgetmailer">
+                            <label>Cache TTL</label>
+                            <frontend_type>text</frontend_type>
                             <sort_order>20</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <comment>In this mode, BudgetMailer Contacts will be synchronized by webhook in a real time. However this requires having SSL certificate installed, and Magento configured to use HTTPS protocol.</comment>
-                        </webhook>
-                        
-                        <ttl>
-                            <label>Local data TTL</label>
-                            <frontend_type>text</frontend_type>
-                            <sort_order>30</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                            <comment>Time to live of local contacts data, for both modes. Please do not change this value, unless you understand how this works.</comment>
+                            <comment>Time to live of the cached results.</comment>
                         </ttl>
                     </fields>
-                </sync>
+                </cache>
                 
                 <advanced translate="label" module="budgetmailer">
                     <label>Advanced</label>

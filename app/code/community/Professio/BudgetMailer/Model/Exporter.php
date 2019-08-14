@@ -5,14 +5,14 @@
  * NOTICE OF LICENSE
  * 
  * This source file is subject to the MIT License
- * that is bundled with this package in the file LICENSE.txt.
+ * that is bundled with this package in the file LICENSE.
  * It is also available through the world-wide-web at this URL:
- * http://opensource.org/licenses/mit-license.php
+ * https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  * 
  * @category       Professio
  * @package        Professio_BudgetMailer
- * @copyright      Copyright (c) 2015
- * @license        http://opensource.org/licenses/mit-license.php MIT License
+ * @copyright      Copyright (c) 2015 - 2017
+ * @license        https://gitlab.com/budgetmailer/budgetmailer-mag1/blob/master/LICENSE
  */
 
 /**
@@ -24,95 +24,37 @@
 class Professio_BudgetMailer_Model_Exporter
 {
     /**
-     * Customers collection
-     * @var Mage_Customer_Model_Resource_Customer_Collection
+     * List of store ids
+     * @var array
      */
-    protected $_customersCollection;
-    
-    /**
-     * Subscribers collection
-     * @var Mage_Newsletter_Model_Resource_Subscriber_Collection 
-     */
-    protected $_subscribersCollection;
-    
-    /**
-     * Unregistered customer orders collection
-     * @var Mage_Sales_Model_Resource_Order_Collection
-     */
-    protected $_unregisteredCollection;
+    protected $_storeIds;
     
     /**
      * Get BudgetMailer API client
      * 
-     * @return Professio_BudgetMailer_Model_Client
+     * @return \BudgetMailer\Api\Client
      */
     protected function getClient()
     {
-        return Mage::getSingleton('budgetmailer/client');
+        return Mage::getSingleton('budgetmailer/client')->getClient();
     }
     
     /**
-     * Get contact model
-     * 
-     * @return Professio_BudgetMailer_Model_Contact
+     * Get list of store ids
+     * @return array
      */
-    protected function getContact()
+    protected function getStoreIds()
     {
-        return Mage::getModel('budgetmailer/contact');
-    }
-    
-    /**
-     * Prepare and get customers collection
-     * 
-     * @return Mage_Customer_Model_Resource_Customer_Collection
-     */
-    protected function getCustomersCollection()
-    {
-        if (!isset($this->_customersCollection)) {
-            $this->_customersCollection = Mage::getModel('customer/customer')
-                ->getCollection();
-            $this->_customersCollection
-                ->addAttributeToSelect('*')
-                ->setPageSize(Professio_BudgetMailer_Model_Client::LIMIT);
+        if (!isset($this->_storeIds)) {
+            $stores = Mage::app()->getStores();
+            $this->_storeIds = array();
+
+            foreach ($stores as $store) {
+                $this->_storeIds[] = $store->getId();
+            }
         }
         
-        return $this->_customersCollection;
-    }
-    
-    /**
-     * Prepare and get subscribers collection
-     * 
-     * @return Mage_Newsletter_Model_Resource_Subscriber_Collection
-     */
-    protected function getSubscribersCollection()
-    {
-        if (!isset($this->_subscribersCollection)) {
-            $this->_subscribersCollection = 
-                Mage::getModel('newsletter/subscriber')->getCollection();
-            $this->_subscribersCollection
-                ->setPageSize(Professio_BudgetMailer_Model_Client::LIMIT);
-        }
-        
-        return $this->_subscribersCollection;
-    }
-    
-    /**
-     * Prepare and get collection of orders from unregistered customers
-     * 
-     * @return Mage_Sales_Model_Resource_Order_Collection
-     */
-    protected function getUnregisteredCollection()
-    {
-        if (!isset($this->_unregisteredCollection)) {
-            $this->_unregisteredCollection = 
-                Mage::getModel('sales/order')->getCollection();
-            $this->_unregisteredCollection
-                ->setPageSize(Professio_BudgetMailer_Model_Client::LIMIT);
-            $this->_unregisteredCollection
-                ->addAttributeToFilter('customer_id', array('null' => true));
-        }
-        
-        return $this->_unregisteredCollection;
+        return $this->_storeIds;
     }
     
     /**
@@ -142,49 +84,11 @@ class Professio_BudgetMailer_Model_Exporter
     {
         $this->log('budgetmailer/exporter::exportCustomers() start');
         
+        $storeIds = $this->getStoreIds();
         $totals = array('total' => 0, 'fail' => 0, 'success' => 0);
         
-        try {
-            $total = $this->getCustomersCollection()->getSize();
-
-            if ($total > 0) {
-                
-                $page = 1;
-                $pages = ceil(
-                    $total / Professio_BudgetMailer_Model_Client::LIMIT
-                );
-
-                $this->log(
-                    'budgetmailer/exporter::exportCustomers() customers: ' 
-                    . $total . ', customer pages: ' . $pages
-                );
-
-                do {
-                    $this->getCustomersCollection()->clear();
-                    $this->getCustomersCollection()->setCurPage($page);
-                    $this->getCustomersCollection()->load();
-
-                    list($total, $fail, $success) = 
-                        $this->exportCustomersPage();
-                    
-                    $totals['total'] += $total;
-                    $totals['fail'] += $fail;
-                    $totals['success'] += $success;
-                    
-                    $page++;
-                } while ($page <= $pages);
-            } else {
-                $this->log(
-                    'budgetmailer/exporter::exportCustomers() no customers'
-                );
-            }
-        } catch(Exception $e) {
-            $this->log(
-                'budgetmailer/exporter::exportCustomers() failed '
-                . 'with exception: ' . $e->getMessage()
-            );
-            
-            Mage::logException($e);
+        foreach ($storeIds as $storeId) {
+            $this->exportCustomersStore($storeId, $totals);
         }
         
         $this->log('budgetmailer/exporter::exportCustomers() end');
@@ -193,135 +97,132 @@ class Professio_BudgetMailer_Model_Exporter
     }
     
     /**
-     * Export single customers page
-     * 
-     * @param boolean $subscribe (un)subscribe
-     * @return array
+     * Export customes from store
+     * @param integer $storeId
+     * @param array $totals
      */
-    protected function exportCustomersPage($subscribe = true)
+    public function exportCustomersStore($storeId, &$totals)
     {
-        $this->log('budgetmailer/exporter::exportCustomersPage() start');
+        $this->log(
+            'budgetmailer/exporter::exportCustomersStore() start (store id: ' 
+            . $storeId . ').'
+        );
 
         try {
-            $contacts = $emails = array();
-            $total = $fail = $success = 0;
+            $client = Mage::getSingleton('budgetmailer/client')
+                ->getStoreClient($storeId);
+            
+            $collection = Mage::getModel('customer/customer')
+                ->getCollection();
+            $collection
+                ->addAttributeToSelect('*')
+                ->addFieldToFilter('store_id', $storeId)
+                ->setPageSize(\BudgetMailer\Api\Client::LIMIT);
 
-            foreach (
-                $this->getCustomersCollection()->getIterator() as $customer
-            ) {
-                $contact = $this->getContact();
-                $contact->loadByCustomer($customer, false);
+            $total = $collection->getSize();
+            
+            if ($total > 0) {
+                $page = 1;
+                $pages = ceil($total / \BudgetMailer\Api\Client::LIMIT);
 
-                if (!$contact->getEntityId()) {
-                    $this->getMapper()->customerToModel($customer, $contact);
-
-                    $address = $this->getHelper()
-                        ->getCustomersPrimaryAddress($customer);
-
-                    if ($address && $address->getEntityId()) {
-                        $this->getMapper()->addressToModel($address, $contact);
-                    }
-
-                    $contact->setCustomerId($customer->getEntityId());
-                    $contact->setEmail($customer->getEmail());
-                    
-                    $contact->setUnsubscribed(!$subscribe);
-                    $contact->setSubscribe($subscribe);
-                    $contact->collectTags();
-                    //$contact->setIsMassupdate(true);
-                    //$contact->save(false);
-                    
-                    $emails[] = $contact->getEmail();
-                } else {
-                    $contact->setUnsubscribed(!$subscribe);
-                    $contact->setSubscribe($subscribe);
-                }
-
-                $contacts[] = $this->getMapper()->contactToApi($contact);
-            }
-
-            if (count($contacts)) {
-                list($total, $fail, $success, $contactsNew) = 
-                    $this->getClient()->postContacts(
-                        $contacts, Professio_BudgetMailer_Model_Client::BULK_INS
-                    );
+                $this->log(
+                    'budgetmailer/exporter::exportCustomersStore() customers: ' 
+                    . $total . ', customer pages: ' . $pages
+                );
                 
-                if (isset($contactsNew->Success) && is_array($contactsNew->Success)) {
-                    foreach ($contactsNew->Success as $contact) {
-                        Mage::getModel('budgetmailer/importer')
-                            ->importContact($contact);
-                    }
-                }
+                do {
+                    $collection->clear();
+                    $collection->setCurPage($page);
+                    $collection->load();
+
+                    $this->exportCustomersStorePage(
+                        $client, $collection, $totals
+                    );
+                    
+                    $page++;
+                } while ($page <= $pages);
+            } else {
+                $this->log(
+                    'budgetmailer/exporter::exportCustomersStore() no customers'
+                );
             }
         } catch (Exception $e) {
             $this->log(
-                'budgetmailer/exporter::exportCustomersPage() failed '
+                'budgetmailer/exporter::exportCustomersStore() failed '
                 . 'with exception: ' . $e->getMessage()
             );
             
             Mage::logException($e);
         }
         
-        $this->log(
-            'budgetmailer/exporter::exportCustomersPage() end (total: ' 
-            . $total . ', fail: ' . $fail . ', success: ' . $success
-        );
-        
-        return array($total, $fail, $success);
+        $this->log('budgetmailer/exporter::exportCustomersStore() end');
     }
     
     /**
-     * Export all subscribers to BudgetMailer API
-     * 
+     * Export one page from store customers
+     * @param \BudgetMailer\Api\Client $client
+     * @param Mage_Customer_Model_Resource_Customer_Collection $collection
+     * @param array $totals
+     */
+    public function exportCustomersStorePage($client, $collection, &$totals)
+    {
+        $this->log('budgetmailer/exporter::exportCustomersStorePage() start');
+
+        try {
+            $contacts = array();
+
+            foreach (
+                $collection->getIterator() as $customer
+            ) {
+                $contact = new stdClass();
+                $this->getMapper()->customerToContact($customer, $contact);
+                
+                $contact->unsubscribed = false;
+                $contact->subscribe = true;
+                
+                $tags = $this->getHelper()
+                    ->getCategoryNamesOfOrderedProducts($customer);
+                
+                if ($tags) {
+                    $contact->tags = $tags;
+                }
+                
+                $contacts[] = $contact;
+            }
+
+            if (count($contacts)) {
+                list($total, $fail, $success) = 
+                    $client->postContactsBulk($contacts);
+                
+                $totals['total'] += $total;
+                $totals['fail'] += $fail;
+                $totals['success'] += $success;
+            }
+        } catch (Exception $e) {
+            $this->log(
+                'budgetmailer/exporter::exportCustomersStorePage() failed '
+                . 'with exception: ' . $e->getMessage()
+            );
+            
+            Mage::logException($e);
+        }
+        
+        $this->log('budgetmailer/exporter::exportCustomersStorePage() end');
+    }
+    
+    /**
+     * Export newsletter subscribers
      * @return array
      */
     public function exportSubscribers()
     {
         $this->log('budgetmailer/exporter::exportSubscribers() start');
         
+        $storeIds = $this->getStoreIds();
         $totals = array('total' => 0, 'fail' => 0, 'success' => 0);
         
-        try {
-            $total = $this->getSubscribersCollection()->getSize();
-
-            if ($total > 0) {
-                $page = 1;
-                $pages = ceil(
-                    $total / Professio_BudgetMailer_Model_Client::LIMIT
-                );
-
-                $this->log(
-                    'budgetmailer/exporter::exportSubscribers() '
-                    . 'subscribers: ' . $total . ', subscriber pages: ' 
-                    . $pages
-                );
-
-                do {
-                    $this->getSubscribersCollection()->clear();
-                    $this->getSubscribersCollection()->setCurPage($page);
-                    $this->getSubscribersCollection()->load();
-        
-                    list($total, $fail, $success) = 
-                        $this->exportSubscribersPage();
-                    
-                    $totals['total'] += $total;
-                    $totals['fail'] += $fail;
-                    $totals['success'] += $success;
-                    
-                    $page++;
-                } while ($page <= $pages);
-            } else {
-                $this->log(
-                    'budgetmailer/exporter::exportSubscribers() no subscribers'
-                );
-            }
-        } catch(Exception $e) {
-            $this->log(
-                'budgetmailer/exporter::exportSubscribers() failed '
-                . 'with exception: ' . $e->getMessage()
-            );
-            
-            Mage::logException($e);
+        foreach ($storeIds as $storeId) {
+            $this->exportSubscribersStore($storeId, $totals);
         }
         
         $this->log('budgetmailer/exporter::exportSubscribers() end');
@@ -330,139 +231,134 @@ class Professio_BudgetMailer_Model_Exporter
     }
     
     /**
-     * Export single subscribers page
-     * 
-     * @param boolean $subscribe (un)subscribe
-     * @return array
+     * Export subscribers from store
+     * @param integer $storeId
+     * @param array $totals
      */
-    protected function exportSubscribersPage($subscribe = true)
+    public function exportSubscribersStore($storeId, &$totals)
     {
-        $this->log('budgetmailer/exporter::exportSubscribersPage() start');
-        
+        $this->log('budgetmailer/exporter::exportSubscribersStore() start');
+
         try {
-            $contacts = array();
-            $total = $fail = $success = 0;
+            $client = Mage::getSingleton('budgetmailer/client')
+                ->getStoreClient($storeId);
+            
+            $collection = Mage::getModel('newsletter/subscriber')
+                ->getCollection();
+            $collection
+                ->addFieldToFilter('store_id', $storeId)
+                ->setPageSize(\BudgetMailer\Api\Client::LIMIT);
 
-            foreach (
-                $this->getSubscribersCollection()->getIterator() as $subscriber
-            ) {
-                $contact = $this->getContact();
-                $contact->loadBySubscriber($subscriber, false);
+            $total = $collection->getSize();
+            
+            if ($total > 0) {
+                $page = 1;
+                $pages = ceil($total / \BudgetMailer\Api\Client::LIMIT);
 
-                if (!$contact->getEntityId()) {
-                    if ($subscriber->getCustomer()) {
-                        $this->getMapper()
-                            ->customerToModel(
-                                $subscriber->getCustomer(), 
-                                $contact
-                            );
-
-                        $address = $this->getHelper()
-                            ->getCustomersPrimaryAddress(
-                                $subscriber->getCustomer()
-                            );
-
-                        if ($address && $address->getEntityId()) {
-                            $this->getMapper()
-                                ->addressToModel($address, $contact);
-                        }
-
-                        $contact->setCustomerId(
-                            $subscriber->getCustomer()->getEntityId()
-                        );
-                    }
-
-                    $contact->setEmail($subscriber->getEmail());
-                    
-                    $contact->setUnsubscribed(!$subscribe);
-                    $contact->setSubscribe($subscribe);
-                    //$contact->setIsMassupdate(true);
-                    //$contact->save(false);
-                } else {
-                    $contact->setUnsubscribed(!$subscribe);
-                    $contact->setSubscribe($subscribe);
-                }
-
-                $contacts[] = $this->getMapper()->contactToApi($contact);
-            }
-
-            if (count($contacts)) {
-                list($total, $fail, $success, $contactsNew) = 
-                    $this->getClient()->postContacts(
-                        $contacts, Professio_BudgetMailer_Model_Client::BULK_INS
-                    );
+                $this->log(
+                    'budgetmailer/exporter::exportSubscribersStore() '
+                    . 'subscribers: ' . $total . ', subscriber pages: ' . $pages
+                );
                 
-                if (isset($contactsNew->Success) && is_array($contactsNew->Success)) {
-                    foreach ($contactsNew->Success as $contact) {
-                        Mage::getModel('budgetmailer/importer')
-                            ->importContact($contact);
-                    }
-                }
+                do {
+                    $collection->clear();
+                    $collection->setCurPage($page);
+                    $collection->load();
+
+                    $this->exportSubscribersStorePage(
+                        $client, $collection, $totals
+                    );
+                    
+                    $page++;
+                } while ($page <= $pages);
+            } else {
+                $this->log(
+                    'budgetmailer/exporter::exportSubscribersStore() no subscr.'
+                );
             }
         } catch (Exception $e) {
             $this->log(
-                'budgetmailer/exporter::exportSubscribersPage() failed '
+                'budgetmailer/exporter::exportSubscribersStore() failed '
                 . 'with exception: ' . $e->getMessage()
             );
             
             Mage::logException($e);
         }
         
-        $this->log(
-            'budgetmailer/exporter::exportSubscribersPage() end (total: ' 
-            . $total . ', fail: ' . $fail . ', success: ' . $success
-        );
-        
-        return array($total, $fail, $success);
+        $this->log('budgetmailer/exporter::exportSubscribersStore() end');
     }
     
-    public function exportUnregistered($subscribe = true)
+    /**
+     * Export subscribers one page from store subscribers
+     * @param \BudgetMailer\Api\Client $client
+     * @param Mage_Newsletter_Model_Resource_Subscriber_Collection $collection
+     * @param array $totals
+     */
+    public function exportSubscribersStorePage($client, $collection, &$totals)
     {
-        $this->log('budgetmailer/exporter::exportUnregistered() start');
-        
-        $totals = array('total' => 0, 'fail' => 0, 'success' => 0);
+        $this->log('budgetmailer/exporter::exportSubscribersStorePage() start');
         
         try {
-            $total = $this->getUnregisteredCollection()->getSize();
+            $contacts = array();
 
-            if ($total > 0) {
-                $page = 1;
-                $pages = ceil(
-                    $total / Professio_BudgetMailer_Model_Client::LIMIT
-                );
-
-                $this->log(
-                    'budgetmailer/exporter::exportUnregistered() '
-                    . 'total: ' . $total . ', pages: ' 
-                    . $pages
-                );
-
-                do {
-                    $this->getUnregisteredCollection()->clear();
-                    $this->getUnregisteredCollection()->setCurPage($page);
-                    $this->getUnregisteredCollection()->load();
-        
-                    list($total, $fail, $success) = 
-                        $this->exportUnregisteredPage($subscribe);
+            foreach (
+                $collection->getIterator() as $subscriber
+            ) {
+                $contact = new stdClass();
+                $this->getMapper()->subscriberToContact($subscriber, $contact);
+                
+                $contact->unsubscribed = false;
+                $contact->subscribe = true;
+                
+                $customer = $subscriber->getCustomer();
+                
+                if ($customer && $customer->getEntityId()) {
+                    $this->getMapper()->customerToContact($customer, $contact);
                     
-                    $totals['total'] += $total;
-                    $totals['fail'] += $fail;
-                    $totals['success'] += $success;
+                    $tags = $this->getHelper()
+                        ->getCategoryNamesOfOrderedProducts($customer);
                     
-                    $page++;
-                } while ($page <= $pages);
-            } else {
-                $this->log(
-                    'budgetmailer/exporter::exportUnregistered() no unregistered orders'
-                );
+                    if ($tags) {
+                        $contact->tags = $tags;
+                    }
+                }
+                
+                $contacts[] = $contact;
             }
-        } catch(Exception $e) {
+
+            if (count($contacts)) {
+                list($total, $fail, $success) = 
+                    $client->postContactsBulk($contacts);
+                
+                $totals['total'] += $total;
+                $totals['fail'] += $fail;
+                $totals['success'] += $success;
+            }
+        } catch (Exception $e) {
             $this->log(
-                'budgetmailer/exporter::exportUnregistered() failed '
+                'budgetmailer/exporter::exportCustomersStorePage() failed '
                 . 'with exception: ' . $e->getMessage()
             );
             
             Mage::logException($e);
+        }
+        
+        $this->log('budgetmailer/exporter::exportSubscribersStorePage() end');
+    }
+    
+    /**
+     * Export unregistered customers
+     * @return array
+     */
+    public function exportUnregistered()
+    {
+        $this->log('budgetmailer/exporter::exportUnregistered() start');
+        
+        $storeIds = $this->getStoreIds();
+        $totals = array('total' => 0, 'fail' => 0, 'success' => 0);
+        
+        foreach ($storeIds as $storeId) {
+            $this->exportUnregisteredStore($storeId, $totals);
         }
         
         $this->log('budgetmailer/exporter::exportUnregistered() end');
@@ -470,74 +366,119 @@ class Professio_BudgetMailer_Model_Exporter
         return $totals;
     }
     
-    public function exportUnregisteredPage($subscribe = true)
+    /**
+     * Export unregistered customers from one store
+     * @param integer $storeId
+     * @param array $totals
+     */
+    public function exportUnregisteredStore($storeId, &$totals)
     {
-        $this->log('budgetmailer/exporter::exportUnregisteredPage() start');
+        $this->log('budgetmailer/exporter::exportUnregisteredStore() start');
 
         try {
-            $contacts = $emails = array();
-            $total = $fail = $success = 0;
+            $client = Mage::getSingleton('budgetmailer/client')
+                ->getStoreClient($storeId);
 
-            foreach (
-                $this->getUnregisteredCollection()->getIterator() as $order
-            ) {
-                $contact = $this->getContact();
-                $contact->loadByEmail($order->getCustomerOrder(), false);
+            $collection = Mage::getModel('sales/order')
+                ->getCollection();
+            $collection
+                ->addAttributeToFilter('customer_id', array('null' => true))
+                ->addFieldToFilter('store_id', $storeId)
+                ->setPageSize(\BudgetMailer\Api\Client::LIMIT);
+            
+            // avoid duplicates
+            $collection->getSelect()->group('main_table.customer_email');
 
-                if (!$contact->getEntityId()) {
-                    $this->getMapper()->orderToModel($order, $contact);
+            $total = $collection->getSize();
+            
+            if ($total > 0) {
+                $page = 1;
+                $pages = ceil($total / \BudgetMailer\Api\Client::LIMIT);
 
-                    $address = $order->getBillingAddress();
-
-                    if ($address && $address->getEntityId()) {
-                        $this->getMapper()->addressToModel($address, $contact);
-                    }
-
-                    $contact->setUnsubscribed(!$subscribe);
-                    $contact->setSubscribe($subscribe);
-                    
-                    if (Mage::helper('budgetmailer/config')->isAdvancedOnOrderEnabled()) {
-                        $tags = $this->getHelper()->getOrderTags($order);
-                        $contact->setTags($tags);
-                    }
-                    
-                    $emails[] = $contact->getEmail();
-                } else {
-                    $contact->setUnsubscribed(!$subscribe);
-                    $contact->setSubscribe($subscribe);
-                }
-
-                $contacts[] = $this->getMapper()->contactToApi($contact);
-            }
-
-            if (count($contacts)) {
-                list($total, $fail, $success, $contactsNew) = 
-                    $this->getClient()->postContacts(
-                        $contacts, Professio_BudgetMailer_Model_Client::BULK_INS
-                    );
+                $this->log(
+                    'budgetmailer/exporter::exportUnregisteredStore() '
+                    . 'orders: ' . $total . ', order pages: ' . $pages
+                );
                 
-                if (isset($contactsNew->Success) && is_array($contactsNew->Success)) {
-                    foreach ($contactsNew->Success as $contact) {
-                        Mage::getModel('budgetmailer/importer')
-                            ->importContact($contact);
-                    }
-                }
+                do {
+                    $collection->clear();
+                    $collection->setCurPage($page);
+                    $collection->load();
+
+                    $this->exportUnregisteredStorePage(
+                        $client, $collection, $totals
+                    );
+                    
+                    $page++;
+                } while ($page <= $pages);
+            } else {
+                $this->log(
+                    'budgetmailer/exporter::exportUnregisteredStore() no orders'
+                );
             }
         } catch (Exception $e) {
             $this->log(
-                'budgetmailer/exporter::exportUnregisteredPage() failed '
+                'budgetmailer/exporter::exportUnregisteredStore() failed '
                 . 'with exception: ' . $e->getMessage()
             );
             
             Mage::logException($e);
         }
         
+        $this->log('budgetmailer/exporter::exportUnregisteredStore() end');
+    }
+    
+    /**
+     * Export one page of unregistered customers from one store
+     * @param \BudgetMailer\Api\Client $client
+     * @param Mage_Sales_Model_Resource_Order_Collection $collection
+     * @param array $totals
+     */
+    public function exportUnregisteredStorePage($client, $collection, &$totals)
+    {
         $this->log(
-            'budgetmailer/exporter::exportUnregisteredPage() end (total: ' 
-            . $total . ', fail: ' . $fail . ', success: ' . $success
+            'budgetmailer/exporter::exportUnregisteredStorePage() start'
         );
         
-        return array($total, $fail, $success);
+        try {
+            $contacts = array();
+
+            foreach (
+                $collection->getIterator() as $order
+            ) {
+                $contact = new stdClass();
+                $this->getMapper()->orderToContact($order, $contact);
+                
+                $contact->unsubscribed = false;
+                $contact->subscribe = true;
+                
+                $tags = $this->getHelper()->getOrderTags($order);
+
+                if ($tags) {
+                    $contact->tags = $tags;
+                }
+                
+                $contacts[] = $contact;
+            }
+
+            if (count($contacts)) {
+                list($total, $fail, $success) = 
+                    $client->postContactsBulk($contacts);
+                
+                $totals['total'] += $total;
+                $totals['fail'] += $fail;
+                $totals['success'] += $success;
+            }
+        } catch (Exception $e) {
+            $this->log(
+                'budgetmailer/exporter::exportUnregisteredStorePage() failed '
+                . 'with exception: ' . $e->getMessage()
+            );
+            
+            Mage::logException($e);
+        }
+        
+        $this->log('budgetmailer/exporter::exportSubscribersStorePage() end');
     }
     
     /**
