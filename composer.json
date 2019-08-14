@@ -3,7 +3,7 @@
     "type": "magento-module",
     "license": "MIT",
     "homepage": "",
-    "description": "Professio BudgetMailer seamlessly implements BudgetMailer API, and flawlessly replace Magento Newsletter.  ",
+    "description": "Professio BudgetMailer seamlessly implements BudgetMailer API, and flawlessly replace Magento Newsletter.",
     "authors": [
     {
         "name": "J.S. Diertens",

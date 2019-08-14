@@ -145,8 +145,9 @@ class Professio_BudgetMailer_Model_Contact extends Mage_Core_Model_Abstract
      */
     public function delete($fromApi = true)
     {
+        $email = $this->getEmail();
         // INFO ensure we have loaded email... 
-        if (empty($this->getEmail())) { 
+        if (empty($email)) { 
             $this->load($this->getEntityId());
         }
         
