@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Professio_BudgetMailer extension
+ * 
+ * NOTICE OF LICENSE
+ * 
+ * This source file is subject to the MIT License
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/mit-license.php
+ * 
+ * @category       Professio
+ * @package        Professio_BudgetMailer
+ * @copyright      Copyright (c) 2015
+ * @license        http://opensource.org/licenses/mit-license.php MIT License
+ */
+-->
+<layout>
+    
+    <default>
+        <reference name="left">
+            <block type="budgetmailer/subscribe" name="budgetmailer.sidebar" template="budgetmailer/subscribe.phtml"/>
+        </reference>
+    </default>
+    
+    <customer_account>
+        <reference name="customer_account_navigation">
+            <action method="addLink" translate="label" module="budgetmailer" ifconfig="budgetmailer/advanced/frontend">
+                <name>budgetmailer</name>
+                <path>budgetmailer/manage/</path>
+                <label>Newsletter Subscriptions</label>
+            </action>
+        </reference>
+        <remove name="budgetmailer.sidebar"/>
+    </customer_account>
+    
+    <customer_account_create>
+        <reference name="content">
+            <block type="budgetmailer/subscribe_mini" name="budgetmailer_subscribe_mini" template="budgetmailer/subscribe/mini.phtml" after="-">
+            </block>
+        </reference>
+    </customer_account_create>
+
+    <budgetmailer_manage_index translate="label">
+        <label>Customer My Account Newsletter Subscriptions</label>
+        <update handle="customer_account"/>
+        <reference name="my.account.wrapper">
+            <block type="budgetmailer/newsletter" name="budgetmailer_newsletter">
+                <block type="page/html_wrapper" name="budgetmailer.newsletter.form.before" as="form_before" translate="label">
+                    <label>Newsletter Subscription Form Before</label>
+                    <action method="setMayBeInvisible"><value>1</value></action>
+                </block>
+            </block>
+        </reference>
+    </budgetmailer_manage_index>
+
+</layout>

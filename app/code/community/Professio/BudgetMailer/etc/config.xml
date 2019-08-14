@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Professio_BudgetMailer extension
+ * 
+ * NOTICE OF LICENSE
+ * 
+ * This source file is subject to the MIT License
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/mit-license.php
+ * 
+ * @category       Professio
+ * @package        Professio_BudgetMailer
+ * @copyright      Copyright (c) 2015
+ * @license        http://opensource.org/licenses/mit-license.php MIT License
+ */
+-->
+<config>
+    
+    <admin>
+        <routers>
+            <adminhtml>
+                <args>
+                    <modules>
+                        <Professio_BudgetMailer before="Mage_Adminhtml">Professio_BudgetMailer_Adminhtml</Professio_BudgetMailer>
+                    </modules>
+                </args>
+            </adminhtml>
+        </routers>
+    </admin>
+    
+    <adminhtml>
+        <events>
+            <admin_system_config_changed_section_budgetmailer>
+                <observers>
+                    <admin_system_config_changed_section_budgetmailer>
+                        <class>budgetmailer/observer</class>
+                        <method>afterConfigChange</method>
+                        <type>singleton</type>
+                    </admin_system_config_changed_section_budgetmailer>
+                </observers>
+            </admin_system_config_changed_section_budgetmailer>
+            
+            <core_block_abstract_prepare_layout_before>
+                <observers>
+                    <budgetmailer_core_block_abstract_prepare_layout_before>
+                        <class>budgetmailer/observer</class>
+                        <method>addMassAction</method>
+                        <type>singleton</type>
+                    </budgetmailer_core_block_abstract_prepare_layout_before>
+                </observers>
+            </core_block_abstract_prepare_layout_before>
+            
+            <customer_save_after>
+                <observers>
+                    <budgetmailer_customer_customer_save_after>
+                        <class>budgetmailer/observer</class>
+                        <method>customerSaveAfterAdmin</method>
+                        <type>singleton</type>
+                    </budgetmailer_customer_customer_save_after>
+                </observers>
+            </customer_save_after>
+	</events>
+        
+        <layout>
+            <updates>
+                <budgetmailer>
+                    <file>budgetmailer.xml</file>
+                </budgetmailer>
+            </updates>
+        </layout>
+        
+        <translate>
+            <modules>
+                <translations>
+                    <files>
+                        <default>Professio_BudgetMailer.csv</default>
+                    </files>
+                </translations>
+            </modules>
+        </translate>
+    </adminhtml>
+    
+    <crontab>
+        <jobs>
+            <budgetmailer_cron>
+                <schedule><cron_expr>0 1 * * *</cron_expr></schedule>
+                <run><model>budgetmailer/observer::cron</model></run>
+            </budgetmailer_cron>
+        </jobs>
+    </crontab>
+
+    <default>
+        <budgetmailer>
+            <api>
+                <endpoint>https://api.budgetmailer.com/</endpoint>
+                <key></key>
+                <secret></secret>
+            </api>
+            
+            <general>
+                <list></list>
+            </general>
+            
+            <sync>
+                <cron>1</cron>
+                <webhook>1</webhook>
+                <ttl>86400</ttl>
+            </sync>
+            
+            <advanced>
+                <address_type>billing</address_type>
+                <frontend>1</frontend>
+                <on_address_delete>use_new</on_address_delete>
+                <on_address_update>update</on_address_update>
+                <on_customer_delete>ignore</on_customer_delete>
+                <on_customer_update>update</on_customer_update>
+                <on_order>1</on_order>
+            </advanced>
+        </budgetmailer>
+    </default>
+    
+    <frontend>
+        <events>
+            <customer_save_after>
+                <observers>
+                    <budgetmailer_customer_customer_save_after>
+                        <class>budgetmailer/observer</class>
+                        <method>customerSaveAfterFront</method>
+                        <type>singleton</type>
+                    </budgetmailer_customer_customer_save_after>
+                </observers>
+            </customer_save_after>
+            
+            <sales_order_place_after>
+                <observers>
+                    <budgetmailer_sales_order_place_after>
+                        <class>budgetmailer/observer</class>
+                        <method>salesOrderPlaceAfter</method>
+                    </budgetmailer_sales_order_place_after>
+                </observers>
+            </sales_order_place_after>
+        </events>
+        
+        <layout>
+            <updates>
+                <budgetmailer>
+                    <file>budgetmailer.xml</file>
+                </budgetmailer>
+            </updates>
+        </layout>
+        
+        <routers>
+            <budgetmailer>
+                <use>standard</use>
+                <args>
+                    <module>Professio_BudgetMailer</module>
+                    <frontName>budgetmailer</frontName>
+                </args>
+            </budgetmailer>
+        </routers>
+        
+        <translate>
+            <modules>
+                <translations>
+                    <files>
+                        <default>Professio_BudgetMailer.csv</default>
+                    </files>
+                </translations>
+            </modules>
+        </translate>
+    </frontend>
+    
+    <global>
+        <blocks>
+            <budgetmailer>
+                <class>Professio_BudgetMailer_Block</class>
+            </budgetmailer>
+        </blocks>
+
+        <helpers>
+            <budgetmailer>
+                <class>Professio_BudgetMailer_Helper</class>
+            </budgetmailer>
+        </helpers>
+        
+        <events>
+            <customer_address_save_after>
+                <observers>
+                    <budgetmailer_customer_customer_save_after>
+                        <class>budgetmailer/observer</class>
+                        <method>addressSaveAfter</method>
+                        <type>singleton</type>
+                    </budgetmailer_customer_customer_save_after>
+                </observers>
+            </customer_address_save_after>
+            
+            <customer_address_delete_after>
+                <observers>
+                    <budgetmailer_customer_customer_save_after>
+                        <class>budgetmailer/observer</class>
+                        <method>addressDeleteAfter</method>
+                        <type>singleton</type>
+                    </budgetmailer_customer_customer_save_after>
+                </observers>
+            </customer_address_delete_after>
+            
+            <customer_delete_after>
+                <observers>
+                    <budgetmailer_customer_customer_delete_after>
+                        <class>budgetmailer/observer</class>
+                        <method>customerDeleteAfter</method>
+                        <type>singleton</type>
+                    </budgetmailer_customer_customer_delete_after>
+                </observers>
+            </customer_delete_after>
+        </events>
+        
+        <models>
+            <budgetmailer>
+                <class>Professio_BudgetMailer_Model</class>
+                <resourceModel>budgetmailer_resource</resourceModel>
+            </budgetmailer>
+            <budgetmailer>
+                <class>Professio_BudgetMailer_Model</class>
+                <resourceModel>budgetmailer_resource</resourceModel>
+            </budgetmailer>
+            <budgetmailer_resource>
+                <class>Professio_BudgetMailer_Model_Resource</class>
+                <entities>
+                    <contact>
+                        <table>budgetmailer_contact</table>
+                    </contact>
+                    <list>
+                        <table>budgetmailer_list</table>
+                    </list>
+                </entities>
+            </budgetmailer_resource>
+        </models>
+        
+        <resources>
+            <budgetmailer_setup>
+                <setup>
+                    <module>Professio_BudgetMailer</module>
+                    <class>Professio_BudgetMailer_Model_Resource_Setup</class>
+                </setup>
+            </budgetmailer_setup>
+        </resources>
+    </global>
+    
+    <modules>
+        <Professio_BudgetMailer>
+            <version>1.0.0</version>
+        </Professio_BudgetMailer>
+    </modules>
+    
+</config>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Professio_BudgetMailer extension
+ * 
+ * NOTICE OF LICENSE
+ * 
+ * This source file is subject to the MIT License
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/mit-license.php
+ * 
+ * @category       Professio
+ * @package        Professio_BudgetMailer
+ * @copyright      Copyright (c) 2015
+ * @license        http://opensource.org/licenses/mit-license.php MIT License
+ */
+-->
+<layout>
+    
+    <adminhtml_budgetmailer_contact_index>
+        <reference name="menu">
+            <action method="setActive">
+                <menupath>professio_budgetmailer/contact</menupath>
+            </action>
+        </reference>
+        
+        <reference name="content">
+            <block type="budgetmailer/adminhtml_contact" name="contact" />
+        </reference>
+    </adminhtml_budgetmailer_contact_index>
+    
+    <adminhtml_budgetmailer_contact_grid>
+        <block type="core/text_list" name="root" output="toHtml">
+            <block type="budgetmailer/adminhtml_contact_grid" name="contact_grid"/>
+        </block>
+    </adminhtml_budgetmailer_contact_grid>
+    
+    <!-- Contact add/edit action -->
+    <adminhtml_budgetmailer_contact_edit>
+        <update handle="editor"/>
+        
+        <reference name="menu">
+            <action method="setActive">
+                <menupath>professio_budgetmailer/contact</menupath>
+            </action>
+        </reference>
+        
+        <reference name="content">
+            <block type="budgetmailer/adminhtml_contact_edit" name="contact_edit"></block>
+        </reference>
+        
+        <reference name="left">
+            <block type="budgetmailer/adminhtml_contact_edit_tabs" name="contact_tabs"></block>
+        </reference>
+    </adminhtml_budgetmailer_contact_edit>
+
+    <adminhtml_budgetmailer_list_index>
+        <reference name="menu">
+            <action method="setActive">
+                <menupath>professio_budgetmailer/list</menupath>
+            </action>
+        </reference>
+        
+        <reference name="content">
+            <block type="budgetmailer/adminhtml_list" name="list" />
+        </reference>
+    </adminhtml_budgetmailer_list_index>
+    
+    <adminhtml_budgetmailer_list_grid>
+        <block type="core/text_list" name="root" output="toHtml">
+            <block type="budgetmailer/adminhtml_list_grid" name="list_grid"/>
+        </block>
+    </adminhtml_budgetmailer_list_grid>
+    
+    <!-- List add/edit action -->
+    <adminhtml_budgetmailer_list_edit>
+        <update handle="editor"/>
+        
+        <reference name="menu">
+            <action method="setActive">
+                <menupath>professio_budgetmailer/list</menupath>
+            </action>
+        </reference>
+        
+        <reference name="content">
+            <block type="budgetmailer/adminhtml_list_edit" name="list_edit"></block>
+        </reference>
+        
+        <reference name="left">
+            <block type="budgetmailer/adminhtml_list_edit_tabs" name="list_tabs"></block>
+        </reference>
+    </adminhtml_budgetmailer_list_edit>
+
+    <adminhtml_customer_edit>
+        <reference name="customer_edit_tabs">
+            <action method="addTab">
+                <name>budgetmailer</name>
+                <block>budgetmailer/adminhtml_customer_tab</block>
+            </action>
+        </reference>
+    </adminhtml_customer_edit>
+    
+</layout>

@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Professio_BudgetMailer extension
+ * 
+ * NOTICE OF LICENSE
+ * 
+ * This source file is subject to the MIT License
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/mit-license.php
+ * 
+ * @category       Professio
+ * @package        Professio_BudgetMailer
+ * @copyright      Copyright (c) 2015
+ * @license        http://opensource.org/licenses/mit-license.php MIT License
+ */
+-->
+<config>
+    <sections>
+        <budgetmailer  translate="label" module="budgetmailer">                    
+            <label>BudgetMailer</label>
+            <tab>customer</tab>
+            <frontend_type>text</frontend_type>
+            <sort_order>999</sort_order>
+            <show_in_default>1</show_in_default>
+            <show_in_website>1</show_in_website>
+            <show_in_store>1</show_in_store>       
+                 
+            <groups>
+                <api translate="label" module="budgetmailer"> 
+                    <label>API</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>10</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <fields>
+                        <endpoint translate="label comment" module="budgetmailer">
+                            <label>API Endpoint</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>BudgetMailer API Endpoint. Please don't change the URL unless you are instructed to.</comment>
+                        </endpoint>
+                        
+                        <key translate="label comment" module="budgetmailer">
+                            <label>API Key</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>20</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Insert your BudgetMailer API Key.</comment>
+                        </key>
+                        
+                        <secret translate="label comment" module="budgetmailer">
+                            <label>API Secret</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>30</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Insert your BudgetMailer API Secret. </comment>
+                        </secret>
+                    </fields>
+                </api>
+                
+                <general translate="label" module="budgetmailer"> 
+                    <label>General</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>20</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <fields>
+                        <list translate="label comment" module="budgetmailer">
+                            <label>List</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>budgetmailer/config_source_list</source_model>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Please select the BudgetMailer List you want to use with Magento.</comment>
+                        </list>
+                    </fields>
+                </general>
+                
+                <sync translate="label" module="budgetmailer"> 
+                    <label>Synchronization</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>30</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <fields>
+                        <cron translate="label comment" module="budgetmailer">
+                            <label>Use Cron Job</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>In this mode, data will be synchronized periodically, every day at 1 a.m.</comment>
+                        </cron>
+                        
+                        <webhook translate="label comment" module="budgetmailer">
+                            <label>Use webhook</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>20</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>In this mode, BudgetMailer Contacts will be synchronized by webhook in a real time. However this requires having SSL certificate installed, and Magento configured to use HTTPS protocol.</comment>
+                        </webhook>
+                        
+                        <ttl>
+                            <label>Local data TTL</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>30</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Time to live of local contacts data, for both modes. Please do not change this value, unless you are understand how this works.</comment>
+                        </ttl>
+                    </fields>
+                </sync>
+                
+                <advanced translate="label" module="budgetmailer">
+                    <label>Advanced</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>40</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <fields>
+                        <frontend translate="label comment" module="budgetmailer">
+                            <label>Enable front-end output</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>If disabled, this module, won't have any front-end output.</comment>
+                        </frontend>
+                        
+                        <address_type translate="label comment" module="budgetmailer">
+                            <label>Use Address</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>budgetmailer/config_source_address</source_model>
+                            <sort_order>20</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Select address that will be synchronized.</comment>
+                        </address_type>
+                        
+                        <on_address_delete translate="label comment" module="budgetmailer">
+                            <label>On Primary Address Delete</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>budgetmailer/config_source_delete_address</source_model>
+                            <sort_order>30</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Select address update behaviour.</comment>
+                        </on_address_delete>
+                        
+                        <on_address_update translate="label comment" module="budgetmailer">
+                            <label>On Primary Address Update</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>budgetmailer/config_source_update</source_model>
+                            <sort_order>40</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Select address update behaviour.</comment>
+                        </on_address_update>
+                        
+                        <on_customer_delete translate="label comment" module="budgetmailer">
+                            <label>On Customer Delete</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>budgetmailer/config_source_delete</source_model>
+                            <sort_order>50</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Select customer delete behaviour.</comment>
+                        </on_customer_delete>
+                        
+                        <on_customer_update translate="label comment" module="budgetmailer">
+                            <label>On Customer Update</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>budgetmailer/config_source_update</source_model>
+                            <sort_order>60</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>Select customer update behaviour.</comment>
+                        </on_customer_update>
+                        
+                        <on_order translate="label comment" module="budgetmailer">
+                            <label>Tag Customers after Order</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>70</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>If enabled, contact will be tagged by category names of ordered products.</comment>
+                        </on_order>
+                    </fields>
+                </advanced>
+            </groups>
+        </budgetmailer>
+    </sections>
+</config>
