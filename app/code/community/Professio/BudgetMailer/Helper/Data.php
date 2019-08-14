@@ -129,4 +129,27 @@ class Professio_BudgetMailer_Helper_Data extends Mage_Core_Helper_Abstract
         
         return $row ? $row : 1;
     }
+    
+    public function getCategoryNamesOfOrderedProducts(
+        Mage_Customer_Model_Customer $customer
+    ) {
+        $states = Mage::getSingleton('sales/order_config')
+            ->getVisibleOnFrontStates();
+        
+        $collection = Mage::getResourceModel('sales/order_collection')
+            ->addFieldToSelect('*')
+            ->addFieldToFilter('customer_id', $customer->getId())
+            ->addFieldToFilter('state', array('in' => $states))
+            ->setOrder('created_at', 'desc');
+        
+        $collection->load();
+        
+        $tags = array();
+        
+        foreach($collection->getIterator() as $order) {
+            $tags = array_merge($tags, $this->getOrderTags($order));
+        }
+        
+        return array_unique($tags);
+    }
 }

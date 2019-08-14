@@ -202,6 +202,7 @@ class Professio_BudgetMailer_Model_Exporter
                     
                     $contact->setUnsubscribed(!$subscribe);
                     $contact->setSubscribe($subscribe);
+                    $contact->collectTags();
                     //$contact->setIsMassupdate(true);
                     //$contact->save(false);
                     

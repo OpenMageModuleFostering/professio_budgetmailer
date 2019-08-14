@@ -98,7 +98,7 @@ extends Mage_Adminhtml_Controller_Action
             $this->getSession()->addSuccess(
                 sprintf(
                     $this->__(
-                        'Customers import finished (completed: %d, fail: %d, '
+                        'Customers export finished (completed: %d, fail: %d, '
                         . 'success: %d).'
                     ), 
                     $rs['total'], $rs['fail'], $rs['success']
@@ -106,7 +106,7 @@ extends Mage_Adminhtml_Controller_Action
             );
         } catch (Exception $e) {
             $this->getSession()
-                ->addError($this->__('Customers import failed.'));
+                ->addError($this->__('Customers export failed.'));
             Mage::logException($e);
         }
         
@@ -124,7 +124,7 @@ extends Mage_Adminhtml_Controller_Action
                 ->addSuccess(
                     sprintf(
                         $this->__(
-                            'Newsletter Subscribers import finished '
+                            'Newsletter Subscribers export finished '
                             . '(completed: %d, fail: %d, success: %d).'
                         ),
                         $rs['total'], $rs['fail'], $rs['success']
@@ -132,7 +132,7 @@ extends Mage_Adminhtml_Controller_Action
                 );
         } catch (Exception $e) {
             $this->getSession()
-                ->addError($this->__('Newsletter subscribers import failed.'));
+                ->addError($this->__('Newsletter export import failed.'));
             Mage::logException($e);
         }
         

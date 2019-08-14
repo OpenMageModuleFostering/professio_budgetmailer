@@ -210,6 +210,7 @@ class Professio_BudgetMailer_Model_Contact extends Mage_Core_Model_Abstract
     public function save($useApi = true)
     {
         $changed = false;
+        $hasId = $this->getEntityId();
         
         if (!is_null($this->getOrigData())) {
             foreach ($this->getData() as $k => $v) {
@@ -244,6 +245,23 @@ class Professio_BudgetMailer_Model_Contact extends Mage_Core_Model_Abstract
             . ($changed ? 'yes' : 'no') . ', with data: ' 
             . json_encode($this->getData())
         );
+        
+        if (!$hasId && $this->getCustomerId()) {
+            Mage::log('budgetmailer/contact::save() no id.');
+            
+            $customer = Mage::getModel('customer/customer')
+                ->load($this->getCustomerId());
+            $tags = Mage::helper('budgetmailer')
+                ->getCategoryNamesOfOrderedProducts($customer);
+            
+            Mage::log('budgetmailer/contact::save() tags: ' . json_encode($tags));
+            
+            if (count($tags)) {
+                $this->setTags($tags);
+            }
+        } else {
+            Mage::log('budgetmailer/contact::save() has id.');
+        }
         
         if ($useApi && $changed) {
             $this->saveToApi();
@@ -554,5 +572,24 @@ class Professio_BudgetMailer_Model_Contact extends Mage_Core_Model_Abstract
         }
         
         return $tags;
+    }
+    
+    /**
+     * Collect all category names of the previously ordered customer products
+     */
+    public function collectTags()
+    {
+        if ($this->getCustomerId()) {
+            $customer = Mage::getModel('customer/customer')->load(
+                $this->getCustomerId()
+            );
+            
+            $tags = Mage::helper('budgetmailer')
+                ->getCategoryNamesOfOrderedProducts($customer);
+            
+            if (count($tags)) {
+                $this->setTags($tags);
+            }
+        }
     }
 }

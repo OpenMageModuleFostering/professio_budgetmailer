@@ -529,6 +529,7 @@ class Professio_BudgetMailer_Helper_Mapper extends Mage_Core_Helper_Abstract
                 || $contactApiNew->tags == '[]'
             ) 
         ) {
+            Mage::log('prepare unset tags');
             unset($contactApiNew->tags);
         }
 
