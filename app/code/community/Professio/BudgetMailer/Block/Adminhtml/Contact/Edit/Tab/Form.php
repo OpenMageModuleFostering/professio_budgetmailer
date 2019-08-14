@@ -180,26 +180,26 @@ extends Mage_Adminhtml_Block_Widget_Form
                 'required'  => false,
             )
         ),
-        array(
-            'unsubscribed', 
-            'select', 
-            array(
-                'label' => 'Unsubscribed',
-                'name'  => 'unsubscribed',
-                'readonly' => true,
-                'required'  => false,
-                'values'=> array(
-                    array(
-                        'value' => 1,
-                        'label' => 'Yes',
-                    ),
-                    array(
-                        'value' => 0,
-                        'label' => 'No',
-                    ),
-                ),
-            )
-        )
+//        array(
+//            'unsubscribed', 
+//            'select', 
+//            array(
+//                'label' => 'Unsubscribed',
+//                'name'  => 'unsubscribed',
+//                'readonly' => true,
+//                'required'  => false,
+//                'values'=> array(
+//                    array(
+//                        'value' => 1,
+//                        'label' => 'Yes',
+//                    ),
+//                    array(
+//                        'value' => 0,
+//                        'label' => 'No',
+//                    ),
+//                ),
+//            )
+//        )
     );
     
     /**

@@ -1,0 +1,63 @@
+<?php
+/**
+ * Professio_BudgetMailer extension
+ * 
+ * NOTICE OF LICENSE
+ * 
+ * This source file is subject to the MIT License
+ * that is bundled with this package in the file LICENSE.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/mit-license.php
+ * 
+ * @category       Professio
+ * @package        Professio_BudgetMailer
+ * @copyright      Copyright (c) 2015
+ * @license        http://opensource.org/licenses/mit-license.php MIT License
+ */
+
+/**
+ * Subscription form before agreements.
+ * 
+ * @category   Professio
+ * @package    Professio_BudgetMailer
+ */
+if (!$this->getAgreements() && $this->isCurrentCustomerSignedUp()) { return; } ?>
+
+<form action="" id="checkout-agreements" onsubmit="return false;">
+
+<?php if ($this->getConfigHelper()->isAdvancedFrontendEnabled() && !$this->isCurrentCustomerSignedUp()): 
+$style = $this->isSignupHidden() ? ' style="display: none"' : null;
+?>
+<div class="buttons-set"<?php print $style ?>>
+    <ul class="form-list">
+        <li>
+            <div>
+                <?php $checked = $this->isSignupChecked() ? ' checked="checked"' : null; ?>
+                <input<?php print $checked?> type="checkbox" name="bm_is_subscribed" title="<?php echo $this->__('Sign Up for Newsletter') ?>" value="1" id="bm_is_subscribed" class="checkbox" />
+                <label for="bm_is_subscribed"><?php echo $this->__('Sign Up for Newsletter') ?></label>
+            </div>
+        </li>
+    </ul>
+</div>
+<?php endif; ?>
+
+<?php if ($this->getAgreements()): ?>
+<ol class="checkout-agreements">
+<?php foreach ($this->getAgreements() as $_a): ?>
+    <li>
+        <div class="agreement-content"<?php echo ($_a->getContentHeight() ? ' style="height:' . $_a->getContentHeight() . '"' : '')?>>
+            <?php if ($_a->getIsHtml()):?>
+                <?php echo $_a->getContent() ?>
+            <?php else:?>
+                <?php echo nl2br($this->escapeHtml($_a->getContent())) ?>
+            <?php endif; ?>
+        </div>
+        <p class="agree">
+            <input type="checkbox" id="agreement-<?php echo $_a->getId()?>" name="agreement[<?php echo $_a->getId()?>]" value="1" title="<?php echo $this->escapeHtml($_a->getCheckboxText()) ?>" class="checkbox" /><label for="agreement-<?php echo $_a->getId()?>"><?php echo $_a->getIsHtml() ? $_a->getCheckboxText() : $this->escapeHtml($_a->getCheckboxText()) ?></label>
+        </p>
+    </li>
+<?php endforeach ?>
+</ol>
+<?php endif; ?>
+
+</form>

@@ -72,6 +72,17 @@ extends Mage_Adminhtml_Block_Widget_Grid_Container
         );
         
         $this->_addButton(
+            'export_unregistered', 
+            array(
+                'label' => Mage::helper('budgetmailer')
+                    ->__('Export unregistered Customers'),
+                'onclick' => 'setLocation(\'' 
+                    . $this->getUnregisteredExportUrl() .'\')',
+                'class' => '',
+            )
+        );
+        
+        $this->_addButton(
             'import_budgetmailer', 
             array(
                 'label'     => Mage::helper('budgetmailer')
@@ -120,5 +131,15 @@ extends Mage_Adminhtml_Block_Widget_Grid_Container
     protected function getSubscribersExportUrl()
     {
         return $this->getUrl('*/budgetmailer/exportsubscribers');
+    }
+    
+    /**
+     * Get unregistered customers export url
+     * 
+     * @return string
+     */
+    protected function getUnregisteredExportUrl()
+    {
+        return $this->getUrl('*/budgetmailer/exportunregistered');
     }
 }

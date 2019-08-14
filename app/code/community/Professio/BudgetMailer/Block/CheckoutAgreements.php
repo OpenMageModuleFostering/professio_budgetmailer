@@ -16,30 +16,40 @@
  */
 
 /**
- * Mini subscribe widget (checkbox)
+ * Override of checkout agreements allowing newsletter sign-up for onepage checkout.
  *
  * @category    Professio
  * @package     Professio_BudgetMailer
  */
-class Professio_BudgetMailer_Block_Subscribe_Mini
-extends Mage_Core_Block_Template
+class Professio_BudgetMailer_Block_CheckoutAgreements extends Mage_Checkout_Block_Agreements
 {
     /**
-     * Get config helper
-     * @return Professio_BudgetMailer_Helper_Config
+     * Override block template
+     *
+     * @return string
      */
-    public function getConfigHelper()
+    protected function _toHtml()
     {
-        return Mage::helper('budgetmailer/config');
+        if (substr_count($_SERVER['REQUEST_URI'], 'onepage')) {
+            $this->setTemplate('budgetmailer/onepage-agreements.phtml');
+        }
+        return parent::_toHtml();
     }
-    
+
     /**
-     * Get form data, in fact only returns new varien object
-     * @return Varien_Object
+     * Check if customer is signed up
+     * @return bool
      */
-    public function getFormData()
-    {
-        return new Varien_Object;
+    public function isCurrentCustomerSignedUp() {
+        if(Mage::getSingleton('customer/session')->isLoggedIn()) {
+            $customer = Mage::getSingleton('customer/session')->getCustomer();
+            $contact = Mage::getModel('budgetmailer/contact');
+            $contact->loadByCustomer($customer);
+            
+            return $contact->getId() > 0;
+        }
+        
+        return false;
     }
     
     /**
@@ -61,5 +71,14 @@ extends Mage_Core_Block_Template
         return 
             Professio_BudgetMailer_Model_Config_Source_Account::HIDDENCHECKED == $v
             || Professio_BudgetMailer_Model_Config_Source_Account::CHECKED == $v;
+    }
+    
+    /**
+     * Get config helper 
+     * @return Professio_BudgetMailer_Helper_Config
+     */
+    public function getConfigHelper()
+    {
+        return Mage::helper('budgetmailer/config');
     }
 }

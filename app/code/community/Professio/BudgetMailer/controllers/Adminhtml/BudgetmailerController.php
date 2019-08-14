@@ -132,7 +132,33 @@ extends Mage_Adminhtml_Controller_Action
                 );
         } catch (Exception $e) {
             $this->getSession()
-                ->addError($this->__('Newsletter export import failed.'));
+                ->addError($this->__('Newsletter export failed.'));
+            Mage::logException($e);
+        }
+        
+        $this->_redirect('*/budgetmailer_contact/index');
+    }
+    
+    /**
+     * Export unregistered customers action
+     */
+    public function exportunregisteredAction()
+    {
+        try {
+            $rs = $this->getExporter()->exportUnregistered();
+            $this->getSession()
+                ->addSuccess(
+                    sprintf(
+                        $this->__(
+                            'Unregistered customers export finished '
+                            . '(completed: %d, fail: %d, success: %d).'
+                        ),
+                        $rs['total'], $rs['fail'], $rs['success']
+                    )
+                );
+        } catch (Exception $e) {
+            $this->getSession()
+                ->addError($this->__('Unregistered customers export failed.'));
             Mage::logException($e);
         }
         
@@ -176,6 +202,7 @@ extends Mage_Adminhtml_Controller_Action
                 $rs = $this->getExporter()->massSubscribeCustomers(
                     $this->getRequest()->getParam('customer'), true
                 );
+                
                 $message = Mage::helper('budgetmailer')->__(
                     sprintf(
                         'Subscribed %d customer(s) (fail: %d, success: %d).', 
@@ -210,6 +237,10 @@ extends Mage_Adminhtml_Controller_Action
             }
         } catch(Exception $e) {
             Mage::getSingleton('adminhtml/session')->addError($e->getMessage());
+            if (!isset($redirect)) {
+                $redirect = '/';
+            }
+            $this->_redirect($redirect);
         }
     }
     
@@ -224,6 +255,7 @@ extends Mage_Adminhtml_Controller_Action
                 $rs = $this->getExporter()->massSubscribeCustomers(
                     $this->getRequest()->getParam('customer'), false
                 );
+                
                 $message = Mage::helper('budgetmailer')->__(
                     sprintf(
                         'Unsubscribed %d customer(s) (fail: %d, success: %d).', 
@@ -247,8 +279,76 @@ extends Mage_Adminhtml_Controller_Action
                 $message = Mage::helper('adminhtml')
                         ->__('Please select some item(s).');
             }
+            
+            if ($rs) {
+                Mage::getSingleton('adminhtml/session')->addSuccess($message);
+            } else {
+                Mage::getSingleton('adminhtml/session')->addError($message);
+            }
+            
+            if (isset($redirect)) {
+                $this->_redirect($redirect);
+            }
         } catch(Exception $e) {
             Mage::getSingleton('adminhtml/session')->addError($e->getMessage());
+            if (!isset($redirect)) {
+                $redirect = '/';
+            }
+            $this->_redirect($redirect);
+        }
+    }
+    
+    /**
+     * Mass delete customers or subscribers
+     */
+    public function massdeleteAction()
+    {
+        try {
+            if ($this->getRequest()->getParam('customer')) {
+                $redirect = '*/customer/index';
+                $rs = $this->getExporter()->massDeleteCustomers(
+                    $this->getRequest()->getParam('customer'), false
+                );
+                
+                $message = Mage::helper('budgetmailer')->__(
+                    sprintf(
+                        'Deleted %d customer(s) (fail: %d, success: %d).', 
+                        $rs['total'], $rs['fail'], $rs['success']
+                    )
+                );
+            } elseif ($this->getRequest()->getParam('subscriber')) {
+                $redirect = '*/newsletter_subscriber/index';
+                $rs = $this->getExporter()->massDeleteSubscribers(
+                    $this->getRequest()->getParam('subscriber'), false
+                );
+                $message = Mage::helper('budgetmailer')->__(
+                    sprintf(
+                        'Deleted %d subscriber(s) '
+                        . '(fail: %d, success: %d).', 
+                        $rs['total'], $rs['fail'], $rs['success']
+                    )
+                );
+            } else {
+                $rs = false;
+                $message = Mage::helper('adminhtml')
+                        ->__('Please select some item(s).');
+            }
+            
+            if ($rs) {
+                Mage::getSingleton('adminhtml/session')->addSuccess($message);
+            } else {
+                Mage::getSingleton('adminhtml/session')->addError($message);
+            }
+            
+            if (isset($redirect)) {
+                $this->_redirect($redirect);
+            }
+        } catch(Exception $e) {
+            Mage::getSingleton('adminhtml/session')->addError($e->getMessage());
+            if (!isset($redirect)) {
+                $redirect = '/';
+            }
+            $this->_redirect($redirect);
         }
     }
 }

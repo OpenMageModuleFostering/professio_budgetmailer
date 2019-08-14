@@ -23,8 +23,25 @@
  */
 class Professio_BudgetMailer_Model_Client extends Zend_Rest_Client
 {
+    const BULK_DELETE = 0;
+    const BULK_UNSUB = 1;
+    const BULK_DELUNSUB = 2;
+    const BULK_INS = 3;
+    
+    /**
+     * Bulk API method limit
+     * 
+     * @var integer
+     */
     const LIMIT = 1000;
 
+    /**
+     * Allowed bulk methods
+     */
+    protected $_bulkMethods = array(
+        self::BULK_DELETE, self::BULK_DELUNSUB, self::BULK_UNSUB, self::BULK_INS
+    );
+    
     /**
      * Caching of API contacts
      * 
@@ -404,11 +421,11 @@ class Professio_BudgetMailer_Model_Client extends Zend_Rest_Client
     {
         $this->init(true);
         
-        /*try {
-            throw new Exception('trace');
-        } catch (Exception $e) {
-            Mage::logException($e);
-        }*/
+//        try {
+//            throw new Exception('trace');
+//        } catch (Exception $e) {
+//            Mage::logException($e);
+//        }
         
         $contactCache = $this->getCache($id);
         
@@ -664,47 +681,77 @@ class Professio_BudgetMailer_Model_Client extends Zend_Rest_Client
         return $contact;
     }
     
-    /**
-     * Insert multiple contacts to API
-     * 
-     * @param array $contacts array of contact objects
-     * @param null|string $list list name, id, or null for default
-     * 
-     * @return boolean
-     * @throws Professio_BudgetMailer_Exception
-     */
-    public function postContacts($contacts, $list = null)
+    public function postContacts($contacts, $bulkMethod, $list = null)
     {
+        if (!in_array($bulkMethod, $this->_bulkMethods)) {
+            throw new Professio_BudgetMailer_Exception(
+                Mage::helper('budgetmailer')
+                    ->__('Invalid bulk method.')
+            );
+        }
+        
         $this->init(true);
         
         if (is_null($list)) {
             $list = $this->getList();
         }
         
-        $path = '/contacts/' . rawurlencode($list) . '/bulk';
+        $path = '/contacts/' . rawurlencode($list);
+        
+        switch($bulkMethod) {
+            case self::BULK_DELETE:
+                $path .= '/bulk-delete';
+                break;
+            case self::BULK_UNSUB:
+                $path .= '/bulk-unsubscribe';
+                break;
+            case self::BULK_DELUNSUB:
+                $path .= '/bulk-delete';
+                break;
+            case self::BULK_INS:
+                $path .= '/bulk-insert';
+                break;
+        }
+        
         $data = json_encode($contacts);
         
         $this->log(
-            'budgetmailer/client::postContacts() path: ' 
+            'budgetmailer/client::postContactsBulk() path: ' 
             . $path . ', list: ' . $list . ', contact: ' . $data
         );
         
-        $rs = $this->restPost($path, $data);
+        //$rs = $this->restPost($path);
         
-        $this->log(
-            'budgetmailer/client::postContacts() result: ' . $rs->getStatus() 
-            . ',  headers: ' . json_encode($rs->getHeaders()) 
-            . ', body: ' . $rs->getBody()
-        );
+        // INFO not using restPost because of the params reset
+        // with combination with the get param neded to delete & unsub 
+        $this->_prepareRest($path);
+        
+        if (self::BULK_DELUNSUB == $bulkMethod) {
+            $this->getHttpClient()->setParameterGet('unsubscribe', 'true');
+            $this->log(
+                'budgetmailer/client::postContactsBulk() unsubscribe=true');
+        } else if (self::BULK_INS == $bulkMethod) {
+            $this->getHttpClient()->setParameterGet('overwrite', 'true');
+            $this->log(
+                'budgetmailer/client::postContactsBulk() overwrite=true');
+        }
+        
+        $rs = $this->_performPost('POST', $data);
         
         $this->_totalCount = $rs->getHeader('X-Total-Count');
         $this->_totalFail = $rs->getHeader('X-Total-Fail');
         $this->_totalSuccess = $rs->getHeader('X-Total-Success');
         
+        $this->log(
+            'budgetmailer/client::postContactsBulk() result: ' . $rs->getStatus() 
+            . ',  headers: ' . json_encode($rs->getHeaders()) 
+            . ', body: ' . $rs->getBody()
+        );
+        
         if ($rs->isError()) {
             throw new Professio_BudgetMailer_Exception(
                 Mage::helper('budgetmailer')
-                ->__('Couldn\'t bulk subscribe contacts to BudgetMailer API.')
+                    ->__('Couldn\'t bulk process contacts in BudgetMailer API.')
             );
         }
         
@@ -822,5 +869,45 @@ class Professio_BudgetMailer_Model_Client extends Zend_Rest_Client
         
             return false;
         }
+    }
+    
+    /**
+     * Overridden prepare rest... replaced self with Zend_Rest_Client
+     * 
+     * Call a remote REST web service URI and return the Zend_Http_Response object
+     *
+     * @param  string $path            The path to append to the URI
+     * @throws Zend_Rest_Client_Exception
+     * @return void
+     */
+    private function _prepareRest($path)
+    {
+        // Get the URI object and configure it
+        if (!$this->_uri instanceof Zend_Uri_Http) {
+            #require_once 'Zend/Rest/Client/Exception.php';
+            throw new Zend_Rest_Client_Exception('URI object must be set before performing call');
+        }
+
+        $uri = $this->_uri->getUri();
+
+        if ($path[0] != '/' && $uri[strlen($uri)-1] != '/') {
+            $path = '/' . $path;
+        }
+
+        $this->_uri->setPath($path);
+
+        /**
+         * Get the HTTP client and configure it for the endpoint URI.  Do this each time
+         * because the Zend_Http_Client instance is shared among all Zend_Service_Abstract subclasses.
+         */
+        if ($this->_noReset) {
+            // if $_noReset we do not want to reset on this request, 
+            // but we do on any subsequent request
+            $this->_noReset = false;
+        } else {
+            Zend_Rest_Client::getHttpClient()->resetParameters();
+        }
+       
+        Zend_Rest_Client::getHttpClient()->setUri($this->_uri);
     }
 }

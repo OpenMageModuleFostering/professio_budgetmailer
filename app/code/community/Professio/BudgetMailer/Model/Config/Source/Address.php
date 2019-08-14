@@ -53,7 +53,7 @@ class Professio_BudgetMailer_Model_Config_Source_Address
     public function toArray()
     {
         return array(
-            self::ON_DELETE_DELEBILLINGTE => 
+            self::BILLING => 
                 Mage::helper('budgetmailer')->__('Billing Address'),
             self::SHIPPING => 
                 Mage::helper('budgetmailer')->__('Shipping Address'),

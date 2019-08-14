@@ -76,110 +76,6 @@ class Professio_BudgetMailer_Model_Observer
     }
     
     /**
-     * Add mass actions to customer grid
-     * 
-     * @param Varien_Event_Observer $observer
-     */
-    public function addMassAction($observer)
-    {
-        //$this->log('budgetmailer/observer::addMassAction() start');
-        
-        try {
-            $block = $observer->getEvent()->getBlock();
-            $controller = $block->getRequest()->getControllerName();
-
-            if ('Mage_Adminhtml_Block_Widget_Grid_Massaction' 
-                    == get_class($block)
-                    && in_array(
-                        $controller, 
-                        array('customer', 'newsletter_subscriber')
-                    )
-                ) {
-                $url = '*/budgetmailer/';
-
-                $block->addItem(
-                    'budgetmailer_subscribe',
-                    array(
-                        'label' => Mage::helper('budgetmailer')
-                            ->__('Subscribe to a BudgetMailer List'),
-                        'url' => Mage::helper('adminhtml')
-                            ->getUrl($url . 'masssubscribe')
-                    )
-                );
-
-                $block->addItem(
-                    'budgetmailer_unsubscribe', 
-                    array(
-                        'label' => Mage::helper('budgetmailer')
-                            ->__('Unsubscribe from a BudgetMailer List'),
-                        'url' => Mage::helper('adminhtml')
-                            ->getUrl($url . 'massunsubscribe')
-                    )
-                );
-            }
-        } catch (Exception $e) {
-            $this->log('budgetmailer/observer::addMassAction() failed');
-            Mage::logException($e);
-        }
-        
-        //$this->log('budgetmailer/observer::addMassAction() end');
-    }
-    
-    /**
-     * After address delete - try to use new primary address, and update contact
-     * 
-     * @param Varien_Event_Observer $observer
-     */
-    public function addressDeleteAfter($observer)
-    {
-        $this->log('budgetmailer/observer::addressDeleteAfter() start');
-        
-        try {
-            if (Mage::helper('budgetmailer/config')
-                    ->isAdvancedOnAddressDeleteEnabled()
-                ) {
-                $address = $observer->getCustomerAddress();
-                $customer = $address->getCustomer();
-            
-                if ($customer && $customer->getEntityId()) {
-                    $addressPrimary = Mage::helper('budgetmailer')
-                        ->getCustomersPrimaryAddress($customer);
-                    
-                    // check if primary address / map / save
-                    if ($address && $addressPrimary
-                        && $address->getEntityId() 
-                        == $addressPrimary->getEntityId()
-                    ) {
-                        $contact = Mage::getModel('budgetmailer/contact')
-                            ->loadByCustomer($customer);
-                        Mage::helper('budgetmailer/mapper')
-                            ->addressToModel($address, $contact);
-                        $contact->save();
-                    }
-                } else {
-                    $this->log(
-                        'budgetmailer/observer::addressDeleteAfter() '
-                        . 'no customer'
-                    );
-                }
-            } else {
-                $this->log(
-                    'budgetmailer/observer::addressDeleteAfter() disabled'
-                );
-            }
-        } catch (Exception $e) {
-            $this->getSession()->addError($e->getMessage());
-            $this->log(
-                'budgetmailer/observer::addressDeleteAfter() '
-                . 'failed with exception: ' . $e->getMessage()
-            );
-            Mage::logException($e);
-        }
-        
-        $this->log('budgetmailer/observer::addressDeleteAfter() end');
-    }
-    
-    /**
      * After address save, check if primary and update contact
      * 
      * @param Varien_Event_Observer $observer
@@ -527,6 +423,25 @@ class Professio_BudgetMailer_Model_Observer
         $this->log('budgetmailer/observer::salesOrderPlaceAfter() start');
         
         try {
+            $budgetmailerSubscribe = Mage::app()->getRequest()
+                ->getPost('bm_is_subscribed');
+            
+            if ($budgetmailerSubscribe) {
+                $order = $observer->getEvent()->getOrder();
+                $email = $order->getCustomerEmail();
+                
+                $contact = Mage::getModel('budgetmailer/contact');
+                $contact->loadByEmail($email);
+                
+                Mage::helper('budgetmailer/mapper')
+                    ->addressToModel($order->getBillingAddress(), $contact);
+                Mage::helper('budgetmailer/mapper')
+                    ->orderToModel($order, $contact);
+                
+                $contact->setSubscribe(true);
+                $contact->save();
+            }
+            
             if (Mage::helper('budgetmailer/config')
                 ->isAdvancedOnOrderEnabled()) {
                 $order = $observer->getEvent()->getOrder();

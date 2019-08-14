@@ -204,34 +204,32 @@ extends Mage_Adminhtml_Block_Widget_Grid
         $this->setMassactionIdField('entity_id');
         $this->getMassactionBlock()->setFormFieldName('contact');
         
+        // delete, unsubscribe, unsubscribe and delete
+        
         $this->getMassactionBlock()->addItem(
             'delete', 
             array(
-                'label' => Mage::helper('budgetmailer')->__('Delete'),
-                'url' => $this->getUrl('*/*/massDelete'),
-                'confirm' => Mage::helper('budgetmailer')->__('Are you sure?')
+                'label'=> Mage::helper('budgetmailer')->__('Delete from BudgetMailer'),
+                'url'  => $this->getUrl('*/*/massDelete'),
+                'confirm'  => Mage::helper('budgetmailer')->__('Are you sure?')
             )
         );
         
         $this->getMassactionBlock()->addItem(
-            'unsubscribed', array(
-            'label' => Mage::helper('budgetmailer')->__('Change Unsubscribed'),
-            'url' => $this->getUrl(
-                '*/*/massUnsubscribed', 
-                array('_current' => true)
-            ),
-            'additional' => array(
-                'flag_unsubscribed' => array(
-                    'name' => 'flag_unsubscribed',
-                    'type' => 'select',
-                    'class' => 'required-entry',
-                    'label' => Mage::helper('budgetmailer')->__('Unsubscribed'),
-                    'values' => array(
-                        '1' => Mage::helper('budgetmailer')->__('Yes'),
-                        '0' => Mage::helper('budgetmailer')->__('No'),
-                    )
-                )
+            'unsubscribe', 
+            array(
+                'label'=> Mage::helper('budgetmailer')->__('Unsubscribe from BudgetMailer'),
+                'url'  => $this->getUrl('*/*/massUnsubscribe'),
+                'confirm'  => Mage::helper('budgetmailer')->__('Are you sure?')
             )
+        );
+        
+        $this->getMassactionBlock()->addItem(
+            'deleteunsubscribe', 
+            array(
+                'label'=> Mage::helper('budgetmailer')->__('Delete and Unsubscribe from BudgetMailer'),
+                'url'  => $this->getUrl('*/*/massDeleteUnsubscribe'),
+                'confirm'  => Mage::helper('budgetmailer')->__('Are you sure?')
             )
         );
         

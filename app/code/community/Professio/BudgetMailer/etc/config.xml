@@ -42,16 +42,6 @@
                 </observers>
             </admin_system_config_changed_section_budgetmailer>
             
-            <core_block_abstract_prepare_layout_before>
-                <observers>
-                    <budgetmailer_core_block_abstract_prepare_layout_before>
-                        <class>budgetmailer/observer</class>
-                        <method>addMassAction</method>
-                        <type>singleton</type>
-                    </budgetmailer_core_block_abstract_prepare_layout_before>
-                </observers>
-            </core_block_abstract_prepare_layout_before>
-            
             <customer_save_after>
                 <observers>
                     <budgetmailer_customer_customer_save_after>
@@ -112,11 +102,11 @@
             <advanced>
                 <address_type>billing</address_type>
                 <frontend>1</frontend>
-                <on_address_delete>use_new</on_address_delete>
                 <on_address_update>update</on_address_update>
                 <on_customer_delete>ignore</on_customer_delete>
                 <on_customer_update>update</on_customer_update>
                 <on_order>1</on_order>
+                <on_create_account>unchecked</on_create_account>
             </advanced>
         </budgetmailer>
     </default>
@@ -177,6 +167,11 @@
             <budgetmailer>
                 <class>Professio_BudgetMailer_Block</class>
             </budgetmailer>
+            <checkout>
+                <rewrite>
+                    <agreements>Professio_BudgetMailer_Block_CheckoutAgreements</agreements>
+                </rewrite>
+            </checkout>
         </blocks>
 
         <helpers>
@@ -195,16 +190,6 @@
                     </budgetmailer_customer_customer_save_after>
                 </observers>
             </customer_address_save_after>
-            
-            <customer_address_delete_after>
-                <observers>
-                    <budgetmailer_customer_customer_save_after>
-                        <class>budgetmailer/observer</class>
-                        <method>addressDeleteAfter</method>
-                        <type>singleton</type>
-                    </budgetmailer_customer_customer_save_after>
-                </observers>
-            </customer_address_delete_after>
             
             <customer_delete_after>
                 <observers>

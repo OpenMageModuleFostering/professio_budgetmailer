@@ -24,7 +24,6 @@
 class Professio_BudgetMailer_Adminhtml_Budgetmailer_ContactController
 extends Professio_BudgetMailer_Controller_Adminhtml_BudgetMailer
 {
-
     /**
      * Intiate new contact and try to load it by requested id
      * 
@@ -42,6 +41,16 @@ extends Professio_BudgetMailer_Controller_Adminhtml_BudgetMailer
         Mage::register('current_contact', $contact);
         
         return $contact;
+    }
+    
+    /**
+     * Check if current user can use this controller
+     * @return bool
+     */
+    protected function _isAllowed()
+    {
+        return Mage::getSingleton('admin/session')
+            ->isAllowed('budgetmailer/contact');
     }
 
     /**
@@ -249,8 +258,6 @@ extends Professio_BudgetMailer_Controller_Adminhtml_BudgetMailer
     
     /**
      * Delete multiple contacts as mass action
-     * 
-     * @return null
      */
     public function massDeleteAction()
     {
@@ -264,234 +271,240 @@ extends Professio_BudgetMailer_Controller_Adminhtml_BudgetMailer
                 );
         } else {
             try {
-                foreach ($contactIds as $contactId) {
-                    $contact = Mage::getModel('budgetmailer/contact');
-                    
-                    try {
-                        $contact->setId($contactId)->delete();
-                    } catch(Professio_BudgetMailer_Exception $e) {
-                        Mage::getSingleton('adminhtml/session')->addError(
-                            Mage::helper('budgetmailer')
-                            ->__(
-                                'There was an error deleting contacts '
-                                . 'from BudgetMailer API.'
-                            )
+                $rs = array('total' => 0, 'fail' => 0, 'success' => 0);
+                $contactIdsChunks = array_chunk(
+                    $contactIds, Professio_BudgetMailer_Model_Client::LIMIT
+                );
+
+                foreach($contactIdsChunks as $chunk) {
+                    $collection = Mage::getModel('budgetmailer/contact')
+                        ->getCollection();
+                    $collection->addFieldToFilter(
+                        'entity_id', array('in' => $chunk)
+                    );
+                    $collection->load();
+
+                    $contacts = array();
+                    $map = array();
+
+                    foreach($collection->getIterator() as $contact) {
+                        $contactApi = new stdClass();
+                        $contactApi->email = $contact->getEmail();
+
+                        $contacts[] = $contactApi;
+                        $map[$contact->getEmail()] = $contact->getId();
+                    }
+
+                    list($total, $fail, $success, $contactsDeleted) 
+                        = Mage::getSingleton('budgetmailer/client')->postContacts(
+                            $contacts, Professio_BudgetMailer_Model_Client::BULK_DELETE
                         );
-                        Mage::logException($e);
+
+                    $rs['total'] += $total;
+                    $rs['fail'] += $fail;
+                    $rs['success'] += $success;
+                    
+                    if (isset($contactsDeleted->Success) && is_array($contactsDeleted->Success)) {
+                        foreach($contactsDeleted->Success as $contactApi) {
+                            if (isset($map[$contactApi->email])) {
+                                $contact = Mage::getModel('budgetmailer/contact');
+                                $contact->setEmail($contactApi->email); // set email to avoid reload from API
+                                $contact->setId($map[$contactApi->email]);
+                                $contact->delete(false);
+                            }
+                        }
                     }
                 }
                 
-                Mage::getSingleton('adminhtml/session')->addSuccess(
-                    Mage::helper('budgetmailer')
-                    ->__(
-                        'Total of %d contacts were successfully deleted.', 
-                        count($contactIds)
-                    )
-                );
-            } catch (Mage_Core_Exception $e) {
                 Mage::getSingleton('adminhtml/session')
-                    ->addError($e->getMessage());
-            } catch (Exception $e) {
-                Mage::getSingleton('adminhtml/session')
-                    ->addError(
-                        Mage::helper('budgetmailer')
-                        ->__('There was an error deleting contacts.')
-                    );
-                Mage::logException($e);
-            }
-        }
-        
-        $this->_redirect('*/*/index');
-    }
-
-    /**
-     * Not used... 
-     */
-    public function massStatusAction()
-    {
-        $contactIds = $this->getRequest()->getParam('contact');
-        
-        if (!is_array($contactIds)) {
-            Mage::getSingleton('adminhtml/session')
-                ->addError(
-                    Mage::helper('budgetmailer')
-                    ->__('Please select contacts.')
-                );
-        } else {
-            try {
-                foreach ($contactIds as $contactId) {
-                    $contact = Mage::getSingleton('budgetmailer/contact');
-                    $contact->load($contactId)
-                        ->setStatus($this->getRequest()->getParam('status'))
-                        ->setIsMassupdate(true)
-                        ->save();
-                }
-                
-                $this->_getSession()->addSuccess(
-                    $this->__(
-                        'Total of %d contacts were successfully updated.', 
-                        count($contactIds)
-                    )
-                );
-            } catch (Mage_Core_Exception $e) {
-                Mage::getSingleton('adminhtml/session')
-                    ->addError($e->getMessage());
-            } catch (Exception $e) {
-                Mage::getSingleton('adminhtml/session')
-                    ->addError(
-                        Mage::helper('budgetmailer')
-                        ->__('There was an error updating contacts.')
-                    );
-                Mage::logException($e);
-            }
-        }
-        
-        $this->_redirect('*/*/index');
-    }
-
-    /**
-     * Mass unsubscribe contacts
-     * 
-     * @return null
-     */
-    public function massUnsubscribedAction()
-    {
-        $contactIds = $this->getRequest()->getParam('contact');
-        
-        if (!is_array($contactIds)) {
-            Mage::getSingleton('adminhtml/session')
-                ->addError(
-                    Mage::helper('budgetmailer')
-                    ->__('Please select contacts.')
-                );
-        } else {
-            try {
-                foreach ($contactIds as $contactId) {
-                    $subscribe = !$this->getRequest()
-                        ->getParam('flag_unsubscribed');
-                    
-                    $contact = Mage::getSingleton('budgetmailer/contact');
-                    $contact->load($contactId);
-                    
-                    $contact->setUnsubscribed(!$subscribe);
-                    $contact->setSubscribe($subscribe);
-                    
-                    $contact->setIsMassupdate(true);
-                    $contact->save();
-                }
-                
-                $this->_getSession()->addSuccess(
-                    $this->__(
-                        'Total of %d contacts were successfully updated.', 
-                        count($contactIds)
-                    )
-                );
-            } catch (Mage_Core_Exception $e) {
-                Mage::getSingleton('adminhtml/session')
-                    ->addError($e->getMessage());
-            } catch (Exception $e) {
-                Mage::getSingleton('adminhtml/session')
-                    ->addError(
-                        Mage::helper('budgetmailer')
-                        ->__('There was an error updating contacts.')
-                    );
-                Mage::logException($e);
-            }
-        }
-        
-        $this->_redirect('*/*/index');
-    }
-
-    /**
-     * Not used
-     */
-    public function massListIdAction()
-    {
-        $contactIds = $this->getRequest()->getParam('contact');
-        
-        if (!is_array($contactIds)) {
-            Mage::getSingleton('adminhtml/session')
-                ->addError(
-                    Mage::helper('budgetmailer')
-                    ->__('Please select contacts.')
-                );
-        } else {
-            try {
-                foreach ($contactIds as $contactId) {
-                    $contact = Mage::getSingleton('budgetmailer/contact');
-                    $contact->load($contactId)
-                        ->setListId(
-                            $this->getRequest()->getParam('flag_list_id')
-                        )
-                        ->setIsMassupdate(true)
-                        ->save();
-                }
-                
-                $this->_getSession()
                     ->addSuccess(
-                        $this->__(
-                            'Total of %d contacts were successfully updated.',
-                            count($contactIds)
+                        sprintf(
+                            $this->__(
+                                'Deleting contacts finished '
+                                . '(completed: %d, fail: %d, success: %d).'
+                            ),
+                            $rs['total'], $rs['fail'], $rs['success']
                         )
                     );
-            } catch (Mage_Core_Exception $e) {
-                Mage::getSingleton('adminhtml/session')
-                    ->addError($e->getMessage());
             } catch (Exception $e) {
                 Mage::getSingleton('adminhtml/session')
                     ->addError(
                         Mage::helper('budgetmailer')
-                        ->__('There was an error updating contacts.')
+                            ->__('There was an unexpected error deleting the contact(s).')
                     );
+                
                 Mage::logException($e);
             }
         }
         
         $this->_redirect('*/*/index');
     }
-
+    
     /**
-     * Not used
+     * Unsubscribe multiple contacts as mass action
      */
-    public function exportCsvAction()
+    public function massUnsubscribeAction()
     {
-        $fileName = 'contact.csv';
-        $content = $this->getLayout()
-            ->createBlock('budgetmailer/adminhtml_contact_grid')
-            ->getCsv();
-        $this->_prepareDownloadResponse($fileName, $content);
+        $contactIds = $this->getRequest()->getParam('contact');
+        
+        if (!is_array($contactIds)) {
+            Mage::getSingleton('adminhtml/session')
+                ->addError(
+                    Mage::helper('budgetmailer')
+                    ->__('Please select contacts to unsubscribe.')
+                );
+        } else {
+            try {
+                $rs = array('total' => 0, 'fail' => 0, 'success' => 0);
+                $contactIdsChunks = array_chunk(
+                    $contactIds, Professio_BudgetMailer_Model_Client::LIMIT
+                );
+
+                foreach($contactIdsChunks as $chunk) {
+                    $collection = Mage::getModel('budgetmailer/contact')
+                        ->getCollection();
+                    $collection->addFieldToFilter(
+                        'entity_id', array('in' => $chunk)
+                    );
+                    $collection->load();
+
+                    $contacts = array();
+                    $map = array();
+
+                    foreach($collection->getIterator() as $contact) {
+                        $contactApi = new stdClass();
+                        $contactApi->email = $contact->getEmail();
+
+                        $contacts[] = $contactApi;
+                        $map[$contact->getEmail()] = $contact;
+                    }
+
+                    list($total, $fail, $success, $contactsDeleted) 
+                        = Mage::getSingleton('budgetmailer/client')->postContacts(
+                            $contacts, Professio_BudgetMailer_Model_Client::BULK_UNSUB
+                        );
+
+                    $rs['total'] += $total;
+                    $rs['fail'] += $fail;
+                    $rs['success'] += $success;
+                    
+                    if (isset($contactsDeleted->Success) && is_array($contactsDeleted->Success)) {
+                        foreach($contactsDeleted->Success as $contactApi) {
+                            if (isset($map[$contactApi->email])) {
+                                $contact = $map[$contactApi->email];
+                                $contact->setUnsubscribed(true);
+                                $contact->save(false);
+                            }
+                        }
+                    }
+                }
+                
+                Mage::getSingleton('adminhtml/session')
+                    ->addSuccess(
+                        sprintf(
+                            $this->__(
+                                'Unsubscribing contacts finished '
+                                . '(completed: %d, fail: %d, success: %d).'
+                            ),
+                            $rs['total'], $rs['fail'], $rs['success']
+                        )
+                    );
+            } catch (Exception $e) {
+                Mage::getSingleton('adminhtml/session')
+                    ->addError(
+                        Mage::helper('budgetmailer')
+                            ->__('There was an unexpected error unsubscribing the contact(s).')
+                    );
+                
+                Mage::logException($e);
+            }
+        }
+        
+        $this->_redirect('*/*/index');
     }
-
+    
     /**
-     * Not used
+     * Delete and unsubscribe multiple contacts as mass action
      */
-    public function exportExcelAction()
+    public function massDeleteUnsubscribeAction()
     {
-        $fileName = 'contact.xls';
-        $content = $this->getLayout()
-            ->createBlock('budgetmailer/adminhtml_contact_grid')
-            ->getExcelFile();
-        $this->_prepareDownloadResponse($fileName, $content);
-    }
 
-    /**
-     * Not used
-     */
-    public function exportXmlAction()
-    {
-        $fileName = 'contact.xml';
-        $content = $this->getLayout()
-            ->createBlock('budgetmailer/adminhtml_contact_grid')
-            ->getXml();
-        $this->_prepareDownloadResponse($fileName, $content);
-    }
+        $contactIds = $this->getRequest()->getParam('contact');
+        
+        if (!is_array($contactIds)) {
+            Mage::getSingleton('adminhtml/session')
+                ->addError(
+                    Mage::helper('budgetmailer')
+                    ->__('Please select contacts to unsubscribe and delete.')
+                );
+        } else {
+            try {
+                $rs = array('total' => 0, 'fail' => 0, 'success' => 0);
+                $contactIdsChunks = array_chunk(
+                    $contactIds, Professio_BudgetMailer_Model_Client::LIMIT
+                );
 
-    /**
-     * Not used
-     */
-    protected function _isAllowed()
-    {
-        return Mage::getSingleton('admin/session')
-            ->isAllowed('budgetmailer/contact');
+                foreach($contactIdsChunks as $chunk) {
+                    $collection = Mage::getModel('budgetmailer/contact')
+                        ->getCollection();
+                    $collection->addFieldToFilter(
+                        'entity_id', array('in' => $chunk)
+                    );
+                    $collection->load();
+
+                    $contacts = array();
+                    $map = array();
+
+                    foreach($collection->getIterator() as $contact) {
+                        $contactApi = new stdClass();
+                        $contactApi->email = $contact->getEmail();
+
+                        $contacts[] = $contactApi;
+                        $map[$contact->getEmail()] = $contact->getId();
+                    }
+
+                    list($total, $fail, $success, $contactsDeleted) 
+                        = Mage::getSingleton('budgetmailer/client')->postContacts(
+                            $contacts, Professio_BudgetMailer_Model_Client::BULK_DELUNSUB
+                        );
+
+                    $rs['total'] += $total;
+                    $rs['fail'] += $fail;
+                    $rs['success'] += $success;
+                    
+                    if (isset($contactsDeleted->Success) && is_array($contactsDeleted->Success)) {
+                        foreach($contactsDeleted->Success as $contactApi) {
+                            if (isset($map[$contactApi->email])) {
+                                $contact = Mage::getModel('budgetmailer/contact');
+                                $contact->setEmail($contactApi->email); // set email to avoid reload from API
+                                $contact->setId($map[$contactApi->email]);
+                                $contact->delete(false);
+                            }
+                        }
+                    }
+                }
+                
+                Mage::getSingleton('adminhtml/session')
+                    ->addSuccess(
+                        sprintf(
+                            $this->__(
+                                'Unsubscribing and deleting contacts finished '
+                                . '(completed: %d, fail: %d, success: %d).'
+                            ),
+                            $rs['total'], $rs['fail'], $rs['success']
+                        )
+                    );
+            } catch (Exception $e) {
+                Mage::getSingleton('adminhtml/session')
+                    ->addError(
+                        Mage::helper('budgetmailer')
+                            ->__('There was an unexpected error unsubscribing and deleting the contact(s).')
+                    );
+                
+                Mage::logException($e);
+            }
+        }
+        
+        $this->_redirect('*/*/index');
     }
 }

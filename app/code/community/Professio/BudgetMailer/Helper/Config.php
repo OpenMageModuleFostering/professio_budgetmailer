@@ -25,14 +25,14 @@ class Professio_BudgetMailer_Helper_Config extends Mage_Core_Helper_Abstract
 {
     const CONFIG_PATH_ADVANCED_ADDRESS_TYPE = 
         'budgetmailer/advanced/address_type';
-    const CONFIG_PATH_ADVANCED_ON_ADDRESS_DELETE = 
-        'budgetmailer/advanced/on_address_delete';
     const CONFIG_PATH_ADVANCED_ON_ADDRESS_UPDATE = 
         'budgetmailer/advanced/on_address_update';
     const CONFIG_PATH_ADVANCED_ON_CUSTOMER_DELETE = 
         'budgetmailer/advanced/on_customer_delete';
     const CONFIG_PATH_ADVANCED_ON_CUSTOMER_UPDATE = 
         'budgetmailer/advanced/on_customer_update';
+    const CONFIG_PATH_ADVANCED_ON_CREATE_ACCOUNT = 
+        'budgetmailer/advanced/on_create_account';
     const CONFIG_PATH_ADVANCED_ON_ORDER = 
         'budgetmailer/advanced/on_order';
     const CONFIG_PATH_ADVANCED_FRONTEND = 
@@ -59,6 +59,13 @@ class Professio_BudgetMailer_Helper_Config extends Mage_Core_Helper_Abstract
     }
     
     /**
+     * Get sign-up configuration while creating an account
+     */
+    public function getAdvancedCreateAccount() {
+        return Mage::getStoreConfig(self::CONFIG_PATH_ADVANCED_ON_CREATE_ACCOUNT);
+    }
+    
+    /**
      * Get enabled front-end
      * 
      * @return boolean
@@ -66,24 +73,6 @@ class Professio_BudgetMailer_Helper_Config extends Mage_Core_Helper_Abstract
     public function isAdvancedFrontendEnabled()
     {
         return Mage::getStoreConfig(self::CONFIG_PATH_ADVANCED_FRONTEND);
-    }
-    
-    /**
-     * Get on address delete enabled
-     * 
-     * @return boolean
-     */
-    public function isAdvancedOnAddressDeleteEnabled()
-    {
-        $c = 
-            Professio_BudgetMailer_Model_Config_Source_Delete_Address
-            ::ON_DELETE_USE_NEW;
-        
-        $v = Mage::getStoreConfig(
-            self::CONFIG_PATH_ADVANCED_ON_ADDRESS_DELETE
-        );
-        
-        return $c == $v;
     }
     
     /**

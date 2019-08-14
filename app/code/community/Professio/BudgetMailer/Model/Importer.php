@@ -464,6 +464,31 @@ class Professio_BudgetMailer_Model_Importer
         return $totals;
     }
     
+    public function deleteContact($contactApi)
+    {
+        $this->log('budgetmailer/importer::deleteContact() start');
+        
+        $contact = Mage::getModel('budgetmailer/contact');
+        
+        if ($contactApi->email) {
+            $contact->loadByEmail($contactApi->email, false);
+        }
+        
+        if (!$contact->getEntityId() && $contactApi->id) {
+            $contact->loadByBudgetMailerId($contactApi->id, false);
+        }
+        
+        if ($contact->getEntityId()) {
+            $contact->delete();
+            
+            return true;
+        }
+        
+        $this->log('budgetmailer/importer::deleteContact() end');
+        
+        return false;
+    }
+    
     /**
      * Custom logging method - logging only if in developer mode
      * 

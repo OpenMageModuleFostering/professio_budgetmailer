@@ -215,6 +215,10 @@ class Professio_BudgetMailer_Model_Contact extends Mage_Core_Model_Abstract
         
         if (!is_null($this->getOrigData())) {
             foreach ($this->getData() as $k => $v) {
+                if ('is_massupdate' == $k) {
+                    continue;
+                }
+                
                 $changed = $this->dataHasChangedFor($k);
 
                 // decode orig value of tags field

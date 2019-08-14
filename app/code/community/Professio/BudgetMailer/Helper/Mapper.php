@@ -100,6 +100,7 @@ class Professio_BudgetMailer_Helper_Mapper extends Mage_Core_Helper_Abstract
     protected $_customerToApi = array(
         'email' => 'email',
         'firstname' => 'firstName',
+        'middlename' => 'insertion',
         'lastname' => 'lastName',
         'sex' => 'gender',
     );
@@ -111,6 +112,7 @@ class Professio_BudgetMailer_Helper_Mapper extends Mage_Core_Helper_Abstract
     protected $_customerToModel = array(
         'email' => 'email',
         'firstname' => 'first_name',
+        'middlename' => 'insertion',
         'lastname' => 'last_name',
         'gender' => 'sex'
     );
@@ -150,6 +152,17 @@ class Professio_BudgetMailer_Helper_Mapper extends Mage_Core_Helper_Abstract
     );
     
     /**
+     * Order to model
+     * @var array
+     */
+    protected $_orderToModel = array(
+        'customer_email' => 'email',
+        'customer_firstname' => 'first_name',
+        'customer_middlename' => 'insertion',
+        'customer_lastname' => 'last_name',
+    );
+    
+    /**
      * Subscriber to model
      * @var array
      */
@@ -161,11 +174,11 @@ class Professio_BudgetMailer_Helper_Mapper extends Mage_Core_Helper_Abstract
     /**
      * Map address to API contact object
      * 
-     * @param Mage_Customer_Model_Address $address
+     * @param Mage_Customer_Model_Address_Abstract $address
      * @param stdClass $contactApi
      */
     public function addressToContact(
-        Mage_Customer_Model_Address $address, $contactApi
+        Mage_Customer_Model_Address_Abstract $address, $contactApi
     )
     {
         if (!is_object($contactApi)) {
@@ -185,11 +198,11 @@ class Professio_BudgetMailer_Helper_Mapper extends Mage_Core_Helper_Abstract
     /**
      * Map address model to contact model
      * 
-     * @param Mage_Customer_Model_Address $address
+     * @param Mage_Customer_Model_Address_Abstract $address
      * @param Professio_BudgetMailer_Model_Contact $contact
      */
     public function addressToModel(
-        Mage_Customer_Model_Address $address, 
+        Mage_Customer_Model_Address_Abstract $address, 
         Professio_BudgetMailer_Model_Contact $contact
     )
     {
@@ -273,9 +286,9 @@ class Professio_BudgetMailer_Helper_Mapper extends Mage_Core_Helper_Abstract
         $contactApi->sex = (int)$contactApi->sex;
         $contactApi->unsubscribed = (bool)$contactApi->unsubscribed;
         
-        $contact->setData(
-            'list', $this->listIdToName($contact->getData('list'))
-        );
+//        $contact->setData(
+//            'list', $this->listIdToName($contact->getData('list'))
+//        );
         
         return $contactApi;
     }
@@ -494,6 +507,24 @@ class Professio_BudgetMailer_Helper_Mapper extends Mage_Core_Helper_Abstract
         }
         
         $list->setData('id', $this->listIdToBudgetmailerId($listApi->id));
+    }
+    
+    /**
+     * Map order model to contact model
+     * 
+     * @param Mage_Sales_Model_Order $order
+     * @param Professio_BudgetMailer_Model_Contact $contact
+     */
+    public function orderToModel(
+        Mage_Sales_Model_Order $order,
+        Professio_BudgetMailer_Model_Contact $contact
+    )
+    {
+        foreach ($this->_orderToModel as $keyOrder => $keyModel) {
+            $contact->setData(
+                $keyModel, $order->getData($keyOrder)
+            );
+        }
     }
     
     /**
