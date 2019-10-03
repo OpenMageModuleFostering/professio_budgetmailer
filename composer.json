@@ -1,16 +1,19 @@
 {
-    "name": "OpenMageModuleFostering/Professio_BudgetMailer",
+    "name": "OpenMageModuleFostering\/Professio_BudgetMailer",
     "type": "magento-module",
     "license": "MIT",
     "homepage": "",
     "description": "Professio BudgetMailer seamlessly implements BudgetMailer API, and flawlessly replace Magento Newsletter.",
     "authors": [
-    {
-        "name": "J.S. Diertens",
-        "email": "info@budgetmailer.nl"
-    }
-],
+        {
+            "name": "J.S. Diertens",
+            "email": "info@budgetmailer.nl"
+        }
+    ],
     "suggest": {
-        "magento-hackathon/magento-composer-installer": "*"
-    }
+        "magento-hackathon\/magento-composer-installer": "*"
+    },
+    "keywords": [
+        "openmage-module"
+    ]
 }
